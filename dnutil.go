@@ -259,7 +259,7 @@ func convertToDn(idn innerDN) (DN, error) {
 //  1.2.840.113549.1.9.1  ElectronicMailAddress
 //  0.9.2342.19200300.100.1.25  DomainComponent
 //
-//AttributeTypeAndValue of the distinguished name currently supported are following OBJECT IDENTIFIER of AttributeType and Encoding of the AttributeValue combinations:
+//AttributeTypeAndValue of the distinguished name currently supported are following combinations of OBJECT IDENTIFIER of AttributeType and Encoding of the AttributeValue:
 //
 //  2.5.4.6  : PrintableString
 //  2.5.4.10 : PrintableString or UTF8String
@@ -381,7 +381,7 @@ func convertToInnerDN(dn DN) (innerDN, error) {
 //  ElectronicMailAddress
 //  DomainComponent
 //
-//AttributeTypeAndValue of the DN currently supported are following AttributeType and Encoding of the AttributeValue combinations:
+//AttributeTypeAndValue of the DN currently supported are following combinations of AttributeType and Encoding of the AttributeValue:
 //
 //  CountryName : PrintableString
 //  OrganizationName : PrintableString or UTF8String
