@@ -1,7 +1,7 @@
 # dnutil
 
 dnutil is a library for easy handling of distinguished name.
-This library is useful for creating and editing a distiguished name for use in Certificates, CRL and CSR in Golang.
+This library is useful for creating and editing a distinguished name for use in Certificates, CRL and CSR in Golang.
 With this library, you can easily and freely create [Issuer](https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.4) and [Subject](https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6) based on [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280).
 
 ## Installation
@@ -12,8 +12,79 @@ go get github.com/tardevnull/dnutil
 
 ## Example
 ```go
+package main
 
+import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/tardevnull/dnutil"
+)
+
+func main() {
+
+	//C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com
+	d := dnutil.DN{
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, String: "JP"}}},
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "example"}}},
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Ext"}}},
+		dnutil.RDN{
+			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Dev"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Sales"}},
+		},
+		dnutil.RDN{
+			dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "ex"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, String: "ex@example.com"}}},
+	}
+
+	subjectBytes, err := dnutil.MarshalDN(d)
+	if err != nil {
+		log.Fatalf("ERROR:%v\n", err)
+	}
+	fmt.Println(hex.EncodeToString(subjectBytes))
+
+	dn, err := dnutil.ParseDERDN(subjectBytes)
+	if err != nil {
+		log.Fatalf("ERROR:%v\n", err)
+	}
+	fmt.Println(dn)
+
+	//Create CertificateRequest
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		log.Fatalf("ERROR:%v\n", err)
+	}
+	var publicKey crypto.PublicKey
+	publicKey = privateKey.Public()
+
+	if err != nil {
+		log.Fatalf("ERROR:%v\n", err)
+	}
+
+	template := &x509.CertificateRequest{
+		PublicKeyAlgorithm: x509.RSA,
+		PublicKey:          publicKey,
+		SignatureAlgorithm: x509.SHA256WithRSA,
+		RawSubject:         subjectBytes,
+	}
+
+	csr, err := x509.CreateCertificateRequest(rand.Reader, template, privateKey)
+	err = pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr})
+	if err != nil {
+		log.Fatalf("ERROR:%v\n", err)
+	}
+
+}
 ```
+[example](https://go.dev/play/p/NHCZ_4nnXMT)
+
 ## Usage
 ### type DN []RDN
 DN represents an ASN.1 DistinguishedName object.
@@ -31,17 +102,16 @@ E(ElectronicMailAddress):IA5String
 ```
 you can write it as DN struct:
 ```
-var d = DN{
-	RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "JP"}}},
-	RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String, String: "example"}}},
-	RDN{AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Ext"}}},
-	RDN{
-		AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Dev"}},
-		AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Sales"}},
-	},
-	RDN{
-		AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, String: "ex"}},
-		AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{Encoding: IA5String, String: "ex@example.com"}}},
+var d = dnutil.DN{
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, String: "JP"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "example"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Ext"}}},
+	dnutil.RDN{
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Dev"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Sales"}},},
+	dnutil.RDN{
+		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "ex"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, String: "ex@example.com"}}},
 }
 ```
 #### Note:
@@ -95,8 +165,8 @@ var d = DN{
 ### func MarshalDN(dn DN) (dnBytes []byte, err error)
 MarshalDN converts a DN to distinguished name (DN), ASN.1 DER form.
 ```
-dn := DN{RDN{AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, String: "cn1"}}},}
-b, err := MarshalDN(dn)
+dn := dnutil.DN{dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "cn1"}}},}
+b, err := dnutil.MarshalDN(d)
 ```
 
 ### func ParseDERDN(dnBytes []byte) (dn DN, err error)
@@ -104,7 +174,7 @@ ParseDERDn parses a distinguished name, ASN.1 DER form and returns DN.
 ```
 //CN=abc (UTF8String)
 b := []byte{0x30, 0x0e, 0x31, 0x0c, 0x30, 0x0a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x03, 0x61, 0x62, 0x63}
-dn, err := ParseDERDn(b)
+dn, err := dnutil.ParseDERDn(b)
 ```
 #### Note:
 - AttributeValue of the distinguished name currently supported are following ASN.1 string encodings:
