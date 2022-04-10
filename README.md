@@ -1,3 +1,4 @@
+[![Go](https://github.com/tardevnull/dnutil/actions/workflows/go.yml/badge.svg)](https://github.com/tardevnull/dnutil/actions/workflows/go.yml)
 # dnutil
 
 dnutil is a library for easy handling of distinguished name.
