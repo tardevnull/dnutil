@@ -91,7 +91,7 @@ func main() {
 DN represents an ASN.1 DistinguishedName object.
 ```
 //Distinguished Name Example
-C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com
+CN=ex+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
 
 C: PrintableString
 O: UTF8String
@@ -175,7 +175,7 @@ ParseDERDn parses a distinguished name, ASN.1 DER form and returns DN.
 ```
 //CN=abc (UTF8String)
 b := []byte{0x30, 0x0e, 0x31, 0x0c, 0x30, 0x0a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x03, 0x61, 0x62, 0x63}
-dn, err := dnutil.ParseDERDn(b)
+dn, err := dnutil.ParseDERDN(b)
 ```
 #### Note:
 - AttributeValue of the distinguished name currently supported are following ASN.1 string encodings:
