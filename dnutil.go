@@ -633,6 +633,14 @@ func (r RDN) CountAttributeTypeAndValue() int {
 	return len(r)
 }
 
+//RetriveRDN returns the rdn specified by index from the DN.
+func (d DN) RetriveRDN(index int) (rdn RDN, err error) {
+	if index < 0 || index >= d.CountRDN() {
+		return RDN{}, fmt.Errorf("index out of bounds error")
+	}
+	return d[index], nil
+}
+
 func isValidAttributeValueEncoding(av AttributeValue) (isValid bool, err error) {
 	switch av.Encoding {
 	case PrintableString:

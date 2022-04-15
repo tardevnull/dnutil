@@ -1036,3 +1036,38 @@ func Test_isValidDN(t *testing.T) {
 		})
 	}
 }
+
+func TestDN_RetriveRDN(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		index int
+	}
+	tests := []struct {
+		name    string
+		d       DN
+		args    args
+		wantRdn RDN
+		wantErr bool
+	}{
+		{"TestCase: 0 RDN element index 0", DN{}, args{0}, RDN{}, true},
+		{"TestCase: 1 RDN element index 0", DN{RDN{atv1}}, args{0}, RDN{atv1}, false},
+		{"TestCase: 1 RDN element index 1", DN{RDN{atv1}}, args{1}, RDN{}, true},
+		{"TestCase: 2 RDN element index -1", DN{RDN{atv1}, RDN{atv2}}, args{-1}, RDN{}, true},
+		{"TestCase: 2 RDN element index 0", DN{RDN{atv1}, RDN{atv2}}, args{0}, RDN{atv1}, false},
+		{"TestCase: 2 RDN element index 1", DN{RDN{atv1}, RDN{atv2}}, args{1}, RDN{atv2}, false},
+		{"TestCase: 2 RDN element index 2", DN{RDN{atv1}, RDN{atv2}}, args{2}, RDN{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRdn, err := tt.d.RetriveRDN(tt.args.index)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RetriveRDN() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotRdn, tt.wantRdn) {
+				t.Errorf("RetriveRDN() gotRdn = %v, want %v", gotRdn, tt.wantRdn)
+			}
+		})
+	}
+}
