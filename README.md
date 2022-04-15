@@ -31,7 +31,7 @@ import (
 
 func main() {
 
-	//C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com
+	//CN=ex+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
 	d := dnutil.DN{
 		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, String: "JP"}}},
 		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "example"}}},
