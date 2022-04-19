@@ -641,6 +641,62 @@ func (d DN) RetrieveRDN(index int) (rdn RDN, err error) {
 	return d[index], nil
 }
 
+//RetrieveRDNsByAttributeTypes returns RDN(s) that exactly match the specified ats AttributeType(s).
+//The order of the AttributeType(s) is ignored because AttributeType(s) is ASN1.SET.
+func (d DN) RetrieveRDNsByAttributeTypes(ats []AttributeType) (rdns []RDN) {
+	rdns = []RDN{}
+	if len(ats) == 0 {
+		return rdns
+	}
+
+	for i := 0; i < d.CountRDN(); i++ {
+		if d[i].CountAttributeTypeAndValue() != len(ats) {
+			continue
+		}
+
+		if !isMatchedRDN(d[i], ats) {
+			continue
+		}
+
+		rdns = append(rdns, d[i])
+	}
+	return rdns
+}
+
+//isMatchedRDN reports whether AttributeType of AttributeTypeAndValue of r RDN matches the specified ats AttributeType(s). The order of AttributeType(s) is ignored. Because of ASN1.SET.
+func isMatchedRDN(r RDN, ats []AttributeType) (isMatched bool) {
+	rest := r
+	for i := 0; i < len(ats); i++ {
+		if index := findMatchedAttributeTypeIndex(rest, ats[i]); index != -1 {
+			rest = removeAttributeTypeAndValue(index, rest)
+		}
+	}
+
+	if len(rest) != 0 {
+		return false
+	}
+
+	return true
+}
+
+//removeAttributeTypeAndValue removes AttributeTypeAndValue specified by index i from r and returns it.
+func removeAttributeTypeAndValue(index int, r RDN) (rest RDN) {
+	rest = make(RDN, len(r), len(r))
+	copy(rest, r)
+	rest = append(rest[:index], rest[index+1:]...)
+	return rest
+}
+
+//findMatchedAttributeTypeIndex finds index of AttributeTypeAndValue of RDN specified by the att AttributeType.
+func findMatchedAttributeTypeIndex(r RDN, att AttributeType) (index int) {
+	for i := 0; i < r.CountAttributeTypeAndValue(); i++ {
+		if r[i].Type == att {
+			return i
+		}
+	}
+	return -1
+}
+
 func isValidAttributeValueEncoding(av AttributeValue) (isValid bool, err error) {
 	switch av.Encoding {
 	case PrintableString:

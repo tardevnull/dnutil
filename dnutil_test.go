@@ -1037,7 +1037,7 @@ func Test_isValidDN(t *testing.T) {
 	}
 }
 
-func TestDN_RetriveRDN(t *testing.T) {
+func TestDN_RetrieveRDN(t *testing.T) {
 	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
 	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
 	type args struct {
@@ -1067,6 +1067,127 @@ func TestDN_RetriveRDN(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotRdn, tt.wantRdn) {
 				t.Errorf("RetrieveRDN() gotRdn = %v, want %v", gotRdn, tt.wantRdn)
+			}
+		})
+	}
+}
+
+func TestDN_RetrieveRDNsByAttributeTypes(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		ats []AttributeType
+	}
+	tests := []struct {
+		name     string
+		d        DN
+		args     args
+		wantRdns []RDN
+	}{
+		{"TestCase: DN has 0 RDN, 0 AttributeType, not matched", DN{}, args{[]AttributeType{}}, []RDN{}},
+		{"TestCase: DN has 0 RDN, 1 AttributeType, not matched", DN{}, args{[]AttributeType{CountryName}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 0 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 1 AttributeType, matched", DN{RDN{atv1}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 1 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{OrganizationName}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 1 AttributeType, 1 matched", DN{RDN{atv1}, RDN{atv2}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 1 AttributeType, 2 matched", DN{RDN{atv1}, RDN{atv1}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}, RDN{atv1}}},
+		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv1, atv2}}, args{[]AttributeType{CommonName, CountryName}}, []RDN{RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 2 AttributeType(Reverse Order), 1 matched", DN{RDN{atv1, atv2}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, 2 matched", DN{RDN{atv1, atv2}, RDN{atv1, atv2}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}, RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{OrganizationName, CommonName}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 3 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, OrganizationName, CommonName}}, []RDN{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotRdns := tt.d.RetrieveRDNsByAttributeTypes(tt.args.ats); !reflect.DeepEqual(gotRdns, tt.wantRdns) {
+				t.Errorf("RetrieveRDNsByAttributeTypes() = %v, want %v", gotRdns, tt.wantRdns)
+			}
+		})
+	}
+}
+
+func Test_removeAttributeTypeAndValue(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		index int
+		r     RDN
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantRest RDN
+	}{
+		{"TestCase: 1 Attributes index 0", args{0, RDN{atv1}}, RDN{}},
+		{"TestCase: 2 Attributes index 0", args{0, RDN{atv1, atv2}}, RDN{atv2}},
+		{"TestCase: 2 Attributes index 1", args{1, RDN{atv1, atv2}}, RDN{atv1}},
+		{"TestCase: 3 Attributes index 0", args{0, RDN{atv1, atv2, atv3}}, RDN{atv2, atv3}},
+		{"TestCase: 3 Attributes index 1", args{1, RDN{atv1, atv2, atv3}}, RDN{atv1, atv3}},
+		{"TestCase: 3 Attributes index 2", args{2, RDN{atv1, atv2, atv3}}, RDN{atv1, atv2}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotRest := removeAttributeTypeAndValue(tt.args.index, tt.args.r); !reflect.DeepEqual(gotRest, tt.wantRest) {
+				t.Errorf("removeAttributeTypeAndValue() = %v, want %v", gotRest, tt.wantRest)
+			}
+		})
+	}
+}
+
+func Test_isMatchedRDN(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		r   RDN
+		ats []AttributeType
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantIsMatched bool
+	}{
+		{"TestCase: 1 Attributes matched", args{RDN{atv1}, []AttributeType{CountryName}}, true},
+		{"TestCase: 2 Attributes matched", args{RDN{atv1, atv2}, []AttributeType{CountryName, CommonName}}, true},
+		{"TestCase: 2 Attributes(Revers order) matched", args{RDN{atv1, atv2}, []AttributeType{CommonName, CountryName}}, true},
+		{"TestCase: 3 Attributes not matched", args{RDN{atv1, atv2, atv3}, []AttributeType{CommonName, CountryName, CommonName}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotIsMatched := isMatchedRDN(tt.args.r, tt.args.ats); gotIsMatched != tt.wantIsMatched {
+				t.Errorf("isMatchedRDN() = %v, want %v", gotIsMatched, tt.wantIsMatched)
+			}
+		})
+	}
+}
+
+func Test_findMatchedAttributeTypeIndex(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		r  RDN
+		at AttributeType
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantIndex int
+	}{
+		{"TestCase: 0 Attributes  not matched", args{RDN{}, CountryName}, -1},
+		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, CountryName}, 0},
+		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, CommonName}, 1},
+		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, OrganizationName}, 2},
+		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, OrganizationalUnit}, -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotIndex := findMatchedAttributeTypeIndex(tt.args.r, tt.args.at); gotIndex != tt.wantIndex {
+				t.Errorf("findMatchedAttributeTypeIndex() = %v, want %v", gotIndex, tt.wantIndex)
 			}
 		})
 	}
