@@ -1060,13 +1060,13 @@ func TestDN_RetriveRDN(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRdn, err := tt.d.RetriveRDN(tt.args.index)
+			gotRdn, err := tt.d.RetrieveRDN(tt.args.index)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RetriveRDN() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RetrieveRDN() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(gotRdn, tt.wantRdn) {
-				t.Errorf("RetriveRDN() gotRdn = %v, want %v", gotRdn, tt.wantRdn)
+				t.Errorf("RetrieveRDN() gotRdn = %v, want %v", gotRdn, tt.wantRdn)
 			}
 		})
 	}
