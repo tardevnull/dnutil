@@ -1440,3 +1440,32 @@ func TestRDN_String(t *testing.T) {
 		})
 	}
 }
+
+func TestDN_ReverseDnOrder(t *testing.T) {
+	rdn1 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}}
+	rdn2 := RDN{AttributeTypeAndValue{CountryName, AttributeValue{UTF8String, "JP"}}}
+	atv1 := AttributeTypeAndValue{CommonName, AttributeValue{UTF8String, "Mike"}}
+	atv2 := AttributeTypeAndValue{ElectronicMailAddress, AttributeValue{IA5String, "Mike@example.org"}}
+	rdn3 := RDN{atv1, atv2}
+	rdn4 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#株式会社Example"}}}
+
+	tests := []struct {
+		name string
+		d    DN
+		want DN
+	}{
+		{"TestCase: 0 RDN", DN{}, DN{}},
+		{"TestCase: o,c", DN{rdn1}, DN{rdn1}},
+		{"TestCase: o,c", DN{rdn1, rdn2}, DN{rdn2, rdn1}},
+		{"TestCase: cn+email,c", DN{rdn3, rdn2}, DN{rdn2, rdn3}},
+		{"TestCase: escaped o,c", DN{rdn4, rdn2}, DN{rdn2, rdn4}},
+		{"TestCase: cn+email,o,c", DN{rdn3, rdn1, rdn2}, DN{rdn2, rdn1, rdn3}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.d.ReverseDnOrder(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReverseDnOrder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

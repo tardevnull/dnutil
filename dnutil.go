@@ -150,6 +150,16 @@ func (a AttributeType) String() string {
 	}
 }
 
+//ReverseDnOrder returns a new reverse order DN.
+func (d DN) ReverseDnOrder() DN {
+	l := d.CountRDN()
+	revDn := DN{}
+	for i := l - 1; i >= 0; i-- {
+		revDn = append(revDn, d[i])
+	}
+	return revDn
+}
+
 //String returns a string representation of this RDN.
 //All string representations of AttributeTypeAndValues in the RDN are concatenated with "+".
 func (r RDN) String() string {
