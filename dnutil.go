@@ -150,6 +150,16 @@ func (a AttributeType) String() string {
 	}
 }
 
+//String returns a string representation of this RDN.
+//All string representations of AttributeTypeAndValues in the RDN are concatenated with "+".
+func (r RDN) String() string {
+	var atvs []string
+	for _, atv := range r {
+		atvs = append(atvs, atv.String())
+	}
+	return strings.Join(atvs, "+")
+}
+
 //ToRFC4514FormatString returns an RFC4514 Format string of this RDN.
 func (r RDN) ToRFC4514FormatString() string {
 	//https://www.rfc-editor.org/rfc/rfc4514#section-2.2
