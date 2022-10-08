@@ -9,6 +9,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -147,6 +148,69 @@ func (a AttributeType) String() string {
 	default:
 		return "Unknown"
 	}
+}
+
+func (a AttributeType) toShortName() string {
+	//https://www.rfc-editor.org/rfc/rfc4514#section-2.3
+	//   If the AttributeType is defined to have a short name (descriptor)
+	//   [RFC4512] and that short name is known to be registered [REGISTRY]
+	//   [RFC4520] as identifying the AttributeType, that short name, a
+	//   <descr>, is used.
+	//
+
+	//ShortNames are from [REGISTRY]
+	//https://www.iana.org/assignments/ldap-parameters/ldap-parameters.xhtml
+
+	//https://www.rfc-editor.org/rfc/rfc4512#section-1.4
+	//   Short names, also known as descriptors, are used as more readable
+	//   aliases for object identifiers.  Short names are case insensitive and
+	//   conform to the ABNF:
+	//
+	//      descr = keystring
+
+	switch a {
+	case CountryName:
+		return "c"
+	case OrganizationName:
+		return "o"
+	case OrganizationalUnit:
+		return "ou"
+	case DnQualifier:
+		return "dnQualifier"
+	case StateOrProvinceName:
+		return "st"
+	case CommonName:
+		return "cn"
+	case SerialNumber:
+		return "serialNumber"
+	case LocalityName:
+		return "L"
+	case Title:
+		return "title"
+	case Surname:
+		return "sn"
+	case GivenName:
+		return "givenName"
+	case Initials:
+		return "initials"
+	case Pseudonym:
+		return "pseudonym"
+	case GenerationQualifier:
+		return "generationQualifier"
+	case ElectronicMailAddress:
+		return "email"
+	case DomainComponent:
+		return "DC"
+	default:
+		return "unknown"
+	}
+}
+
+//ToRFC4514FormatString returns an RFC4514 Format string of this AttributeTypeAndValue.
+//The attribute type is uppercase
+func (atv AttributeTypeAndValue) ToRFC4514FormatString() string {
+	//https://www.rfc-editor.org/rfc/rfc4514#section-2.3
+	return strings.ToUpper(atv.Type.toShortName()) + "=" + atv.Value.ToRFC4514FormatString()
 }
 
 //String returns a string representation of this AttributeValue.
