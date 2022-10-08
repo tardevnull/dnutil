@@ -1192,3 +1192,61 @@ func Test_findMatchedAttributeTypeIndex(t *testing.T) {
 		})
 	}
 }
+
+func Test_needEscaping(t *testing.T) {
+	type args struct {
+		r rune
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"TestCase: U+0022", args{rune('\U00000022')}, true},
+		{"TestCase: U+002B", args{rune('\U0000002B')}, true},
+		{"TestCase: U+002C", args{rune('\U0000002C')}, true},
+		{"TestCase: U+003B", args{rune('\U0000003B')}, true},
+		{"TestCase: U+003C", args{rune('\U0000003C')}, true},
+		{"TestCase: U+003E", args{rune('\U0000003E')}, true},
+		{"TestCase: U+005C", args{rune('\U0000005C')}, true},
+		{"TestCase: U+0000", args{rune('\U00000000')}, true},
+		{"TestCase: A ", args{rune('\U00000041')}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := needEscaping(tt.args.r); got != tt.want {
+				t.Errorf("needEscaping() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_escapeAttributeValue(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"TestCase: AAA", args{"AAA"}, "AAA"},
+		{"TestCase:  AAA", args{" AAA"}, "\\ AAA"},
+		{"TestCase: #AAA", args{"#AAA"}, "\\#AAA"},
+		{"TestCase:  AAA#", args{" AAA"}, "\\ AAA"},
+		{"TestCase: #AAA ", args{"#AAA "}, "\\#AAA\\ "},
+		{"TestCase:  AAA ", args{" AAA "}, "\\ AAA\\ "},
+		{"TestCase:  A A A ", args{" A A A "}, "\\ A A A\\ "},
+		{"TestCase: あ い う", args{" あ い う "}, "\\ あ い う\\ "},
+		{"TestCase: あ(U+0022)い+う,え;お ", args{" あ\"い+う,え;お "}, "\\ あ\\\"い\\+う\\,え\\;お\\ "},
+		{"TestCase: あ(U+003C)い(U+003E)う(U+005C)え ", args{" あ<い>う\\え "}, "\\ あ\\<い\\>う\\\\え\\ "},
+		{"TestCase: James (U+0022)Jim(U+0022), III", args{"James \"Jim\" Smith, III"}, "James \\\"Jim\\\" Smith\\, III"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := escapeAttributeValue(tt.args.s); got != tt.want {
+				t.Errorf("escapeAttributeValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

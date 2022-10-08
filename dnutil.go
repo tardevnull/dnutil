@@ -9,6 +9,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"unicode/utf8"
 )
 
 //AttributeType represents a Name of ASN.1 Attribute Type object.
@@ -146,6 +147,55 @@ func (a AttributeType) String() string {
 	default:
 		return "Unknown"
 	}
+}
+
+func needEscaping(r rune) bool {
+	if r == '"' || r == '+' || r == ',' || r == ';' || r == '<' || r == '>' || r == '\\' || r == 0x0000 {
+		//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
+		//- one of the characters '"', '+', ',', ';', '<', '>',  or '\'
+		//(U+0022, U+002B, U+002C, U+003B, U+003C, U+003E, or U+005C, respectively);
+		//- the null (U+0000) character.
+		return true
+	}
+	return false
+}
+
+func escapeAttributeValue(s string) string {
+	cnt := 0
+	lastIndex := utf8.RuneCountInString(s) - 1
+	var out string
+	for _, r := range s {
+		if cnt == 0 && r == ' ' || r == '#' {
+			//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
+			//- a space (' ' U+0020) or number sign ('#' U+0023) occurring at the beginning of the string;
+			out = out + escape(string(r))
+			cnt++
+			continue
+		}
+
+		if cnt == lastIndex && r == ' ' {
+			//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
+			//- a space (' ' U+0020) character occurring at the end of the string;
+			out = out + escape(string(r))
+			cnt++
+			continue
+		}
+
+		if needEscaping(r) {
+			//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
+			out = out + escape(string(r))
+			cnt++
+			continue
+		}
+
+		out = out + string(r)
+		cnt++
+	}
+	return out
+}
+
+func escape(c string) string {
+	return "\\" + c
 }
 
 type Encoding int
