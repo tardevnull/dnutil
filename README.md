@@ -33,16 +33,16 @@ func main() {
 
 	//CN=ex+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
 	d := dnutil.DN{
-		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, String: "JP"}}},
-		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "example"}}},
-		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Ext"}}},
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, Value: "JP"}}},
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "example"}}},
+		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Ext"}}},
 		dnutil.RDN{
-			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Dev"}},
-			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Sales"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Dev"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Sales"}},
 		},
 		dnutil.RDN{
-			dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "ex"}},
-			dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, String: "ex@example.com"}}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
 	}
 
 	subjectBytes, err := dnutil.MarshalDN(d)
@@ -104,15 +104,15 @@ E(ElectronicMailAddress):IA5String
 you can write it as DN struct:
 ```
 var d = dnutil.DN{
-	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, String: "JP"}}},
-	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "example"}}},
-	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Ext"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, Value: "JP"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "example"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Ext"}}},
 	dnutil.RDN{
-		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Dev"}},
-		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "Sales"}},},
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Dev"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Sales"}},},
 	dnutil.RDN{
-		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "ex"}},
-		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, String: "ex@example.com"}}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
 }
 ```
 #### Note:
@@ -166,7 +166,7 @@ var d = dnutil.DN{
 ### func MarshalDN(dn DN) (dnBytes []byte, err error)
 MarshalDN converts a DN to distinguished name (DN), ASN.1 DER form.
 ```
-dn := dnutil.DN{dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, String: "cn1"}}},}
+dn := dnutil.DN{dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "cn1"}}},}
 b, err := dnutil.MarshalDN(d)
 ```
 
