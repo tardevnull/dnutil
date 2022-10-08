@@ -1250,3 +1250,38 @@ func Test_escapeAttributeValue(t *testing.T) {
 		})
 	}
 }
+
+func TestAttributeValue_ToRFC4514FormatString(t *testing.T) {
+	type fields struct {
+		Encoding Encoding
+		Value    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{"TestCase: AAA", fields{2, "AAA"}, "AAA"},
+		{"TestCase:  AAA", fields{2, " AAA"}, "\\ AAA"},
+		{"TestCase: #AAA", fields{2, "#AAA"}, "\\#AAA"},
+		{"TestCase:  AAA#", fields{2, " AAA"}, "\\ AAA"},
+		{"TestCase: #AAA ", fields{2, "#AAA "}, "\\#AAA\\ "},
+		{"TestCase:  AAA ", fields{2, " AAA "}, "\\ AAA\\ "},
+		{"TestCase:  A A A ", fields{2, " A A A "}, "\\ A A A\\ "},
+		{"TestCase: あ い う", fields{2, " あ い う "}, "\\ あ い う\\ "},
+		{"TestCase: あ(U+0022)い+う,え;お ", fields{2, " あ\"い+う,え;お "}, "\\ あ\\\"い\\+う\\,え\\;お\\ "},
+		{"TestCase: あ(U+003C)い(U+003E)う(U+005C)え ", fields{2, " あ<い>う\\え "}, "\\ あ\\<い\\>う\\\\え\\ "},
+		{"TestCase: James (U+0022)Jim(U+0022) Smith, III", fields{2, "James \"Jim\" Smith, III"}, "James \\\"Jim\\\" Smith\\, III"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			av := AttributeValue{
+				Encoding: tt.fields.Encoding,
+				Value:    tt.fields.Value,
+			}
+			if got := av.ToRFC4514FormatString(); got != tt.want {
+				t.Errorf("ToRFC4514FormatString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -149,6 +149,12 @@ func (a AttributeType) String() string {
 	}
 }
 
+//ToRFC4514FormatString returns an RFC4514 Format string of this AttributeValue.
+func (av AttributeValue) ToRFC4514FormatString() string {
+	//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
+	return escapeAttributeValue(av.Value)
+}
+
 func needEscaping(r rune) bool {
 	if r == '"' || r == '+' || r == ',' || r == ';' || r == '<' || r == '>' || r == '\\' || r == 0x0000 {
 		//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
