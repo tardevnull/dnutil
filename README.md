@@ -84,7 +84,7 @@ func main() {
 
 }
 ```
-[example](https://go.dev/play/p/NHCZ_4nnXMT)
+[example](https://go.dev/play/p/s7SxXlzm-TK)
 
 ## Usage
 ### type DN []RDN
@@ -99,7 +99,7 @@ OU=Ext: UTF8String
 OU=Dev: UTF8String
 OU=Sales: UTF8String
 CN:UTF8String
-E(ElectronicMailAddress):IA5String
+EMAIL(ElectronicMailAddress):IA5String
 ```
 you can write it as DN struct:
 ```
@@ -221,6 +221,27 @@ IA5String
 2.5.4.44 : PrintableString or UTF8String
 1.2.840.113549.1.9.1 : IA5String
 0.9.2342.19200300.100.1.25 : IA5String
+```
+
+### func (d DN) ToRFC4514FormatString() string
+ToRFC4514FormatString returns an RFC4514 Format string of the DN.
+```
+d := dnutil.DN{
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, Value: "JP"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "example Co., Ltd"}}},
+	dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "A,B;"}}},
+	dnutil.RDN{
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "#Dev"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: " Sales"}},
+	},
+	dnutil.RDN{
+		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
+}
+```
+
+```
+RFC4514 section2 Format:  CN=ex+EMAIL=ex@example.com,OU=\#Dev+OU=\ Sales,OU=A\,B\;,O=example Co.\, Ltd,C=JP
 ```
 
 ## License
