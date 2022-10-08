@@ -150,6 +150,27 @@ func (a AttributeType) String() string {
 	}
 }
 
+//ToRFC4514FormatString returns an RFC4514 Format string of this DN.
+func (d DN) ToRFC4514FormatString() string {
+	//https://www.rfc-editor.org/rfc/rfc4514#section-2.1
+	if d.CountRDN() == 0 {
+		//If the RDNSequence is an empty sequence, the result is the empty or zero-length string.
+		return ""
+	}
+
+	//the output consists of the string encodings of each RelativeDistinguishedName
+	//in the RDNSequence (according to Section 2.2),
+	//starting with the last element of the sequence and moving backwards toward the first.
+	out := d.ReverseDnOrder()
+
+	var rdns []string
+	for _, rdn := range out {
+		rdns = append(rdns, rdn.ToRFC4514FormatString())
+	}
+	//The encodings of adjoining RelativeDistinguishedNames are separated by a comma (',' U+002C) character.
+	return strings.Join(rdns, ",")
+}
+
 //ReverseDnOrder returns a new reverse order DN.
 func (d DN) ReverseDnOrder() DN {
 	l := d.CountRDN()
