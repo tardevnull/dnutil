@@ -1348,3 +1348,31 @@ func TestAttributeTypeAndValue_ToRFC4514FormatString(t *testing.T) {
 		})
 	}
 }
+
+func TestAttributeTypeAndValue_String(t *testing.T) {
+	type fields struct {
+		Type  AttributeType
+		Value AttributeValue
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{"TestCase: OrganizationName AAA", fields{OrganizationName, AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
+		{"TestCase: DnQualifier AAA", fields{DnQualifier, AttributeValue{UTF8String, "AAA"}}, "DNQUALIFIER=AAA"},
+		{"TestCase: LocalityName  AAA", fields{LocalityName, AttributeValue{UTF8String, " AAA"}}, "L= AAA"},
+		{"TestCase: CommonName James (U+0022)Jim(U+0022) Smith, III", fields{CommonName, AttributeValue{UTF8String, "James \"Jim\" Smith, III"}}, "CN=James \"Jim\" Smith, III"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			atv := AttributeTypeAndValue{
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+			}
+			if got := atv.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

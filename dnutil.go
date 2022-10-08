@@ -150,6 +150,12 @@ func (a AttributeType) String() string {
 	}
 }
 
+//String returns a string representation of this AttributeTypeAndValue.
+//The attribute type is uppercase, and the attribute type and value are concatenated by "=".
+func (atv AttributeTypeAndValue) String() string {
+	return strings.ToUpper(atv.Type.toShortName()) + "=" + atv.Value.String()
+}
+
 func (a AttributeType) toShortName() string {
 	//https://www.rfc-editor.org/rfc/rfc4514#section-2.3
 	//   If the AttributeType is defined to have a short name (descriptor)
