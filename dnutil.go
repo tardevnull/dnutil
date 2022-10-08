@@ -30,7 +30,7 @@ type innerDN []innerRDNSET
 //https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.4
 type AttributeValue struct {
 	Encoding Encoding
-	String   string
+	Value    string
 }
 
 //AttributeTypeAndValue represents an ASN.1 AttributeTypeAndValue object.
@@ -181,7 +181,7 @@ func convertToAttributeValue(r asn1.RawValue) (av AttributeValue, err error) {
 		err := fmt.Errorf("AttributeValue parsing error: trailing data after AttributeValue")
 		return AttributeValue{}, err
 	}
-	av.String = st
+	av.Value = st
 	return av, nil
 }
 
@@ -303,7 +303,7 @@ func ParseDERDN(dnBytes []byte) (dn DN, err error) {
 
 func convertToInnerAttributeTypeAndValue(atv AttributeTypeAndValue) (innerAttributeTypeAndValue, error) {
 	v := atv.Value
-	srv, err := newStringRawValue(v.Encoding, v.String)
+	srv, err := newStringRawValue(v.Encoding, v.Value)
 	if err != nil {
 		err := fmt.Errorf("AttributeTypeAndValue marshal error: %w", err)
 		return innerAttributeTypeAndValue{}, err

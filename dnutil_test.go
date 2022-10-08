@@ -259,9 +259,9 @@ func Test_convertToAttributeValue(t *testing.T) {
 		wantAv  AttributeValue
 		wantErr bool
 	}{
-		{"TestCase:PrintableString ", args{r1}, AttributeValue{Encoding: PrintableString, String: "JP"}, false},
-		{"TestCase:UTF8String ", args{r2}, AttributeValue{Encoding: UTF8String, String: "日本"}, false},
-		{"TestCase:IA5String ", args{r3}, AttributeValue{Encoding: IA5String, String: "a@example.com"}, false},
+		{"TestCase:PrintableString ", args{r1}, AttributeValue{Encoding: PrintableString, Value: "JP"}, false},
+		{"TestCase:UTF8String ", args{r2}, AttributeValue{Encoding: UTF8String, Value: "日本"}, false},
+		{"TestCase:IA5String ", args{r3}, AttributeValue{Encoding: IA5String, Value: "a@example.com"}, false},
 		{"TestCase:BMPString ", args{r4}, AttributeValue{}, true},
 		{"TestCase:PrintableString , Broken raw", args{r5}, AttributeValue{}, true},
 	}
@@ -296,7 +296,7 @@ func Test_convertToAttributeTypeAndValue(t *testing.T) {
 		want    AttributeTypeAndValue
 		wantErr bool
 	}{
-		{"TestCase:CountryName PrintableString JP", args{iatv1}, AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "JP"}}, false},
+		{"TestCase:CountryName PrintableString JP", args{iatv1}, AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "JP"}}, false},
 		{"TestCase:CountryName PrintableString Broken data", args{iatv2}, AttributeTypeAndValue{}, true},
 		{"TestCase:Wrong OID PrintableString JP", args{iatv3}, AttributeTypeAndValue{}, true},
 	}
@@ -335,15 +335,15 @@ func Test_convertToRdn(t *testing.T) {
 			"TestCase:1 AttributeTypeAndValue",
 			args{innerRDNSET{iatv1}},
 			RDN{
-				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "a"}},
+				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}},
 			},
 			false,
 		},
 		{"TestCase:2 AttributeTypeAndValue",
 			args{innerRDNSET{iatv1, iatv2}},
 			RDN{
-				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "a"}},
-				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "aa"}},
+				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}},
+				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}},
 			},
 			false},
 		{
@@ -398,7 +398,7 @@ func Test_convertToDn(t *testing.T) {
 			"TestCase:1 RDN",
 			args{innerDN{irv1}},
 			DN{
-				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "a"}}},
+				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}}},
 			},
 			false,
 		},
@@ -406,8 +406,8 @@ func Test_convertToDn(t *testing.T) {
 			"TestCase:2 RDN",
 			args{innerDN{irv1, irv2}},
 			DN{
-				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "a"}}},
-				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "aa"}}},
+				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}}},
+				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}},
 			},
 			false,
 		},
@@ -444,14 +444,14 @@ func TestParseDERDN(t *testing.T) {
 	}{
 		{"TestCase:C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=cn1", args{decode("3057310b3009060355040613024a503110300e060355040a0c076578616d706c65310c300a060355040b0c03457874311a300a060355040b0c03446576300c060355040b0c0553616c6573310c300a06035504030c03636e31")},
 			DN{
-				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "JP"}}},
-				RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String, String: "example"}}},
-				RDN{AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Ext"}}},
+				RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "JP"}}},
+				RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String, Value: "example"}}},
+				RDN{AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Ext"}}},
 				RDN{
-					AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Dev"}},
-					AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Sales"}},
+					AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Dev"}},
+					AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Sales"}},
 				},
-				RDN{AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, String: "cn1"}}},
+				RDN{AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, Value: "cn1"}}},
 			},
 			false},
 		{"TestCase:Empty DN", args{decode("3000")}, DN{}, false},
@@ -518,13 +518,13 @@ func TestReferAttributeTypeName(t *testing.T) {
 func Test_convertToInnerAttributeTypeAndValue(t *testing.T) {
 	var r1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13024A50")}    //PrintableString JP
 	var r2 = asn1.RawValue{Tag: asn1.TagUTF8String, FullBytes: decode("0C06E697A5E69CAC")} //UTF8String 日本
-	var atv1 = AttributeValue{Encoding: PrintableString, String: "JP"}
+	var atv1 = AttributeValue{Encoding: PrintableString, Value: "JP"}
 	var atnv1 = AttributeTypeAndValue{Type: CountryName, Value: atv1}
-	var atv2 = AttributeValue{Encoding: 99, String: "JP"}
+	var atv2 = AttributeValue{Encoding: 99, Value: "JP"}
 	var atnv2 = AttributeTypeAndValue{Type: CountryName, Value: atv2}
-	var atv3 = AttributeValue{Encoding: PrintableString, String: "JP"}
+	var atv3 = AttributeValue{Encoding: PrintableString, Value: "JP"}
 	var atnv3 = AttributeTypeAndValue{Type: 9999, Value: atv3}
-	var atv4 = AttributeValue{Encoding: UTF8String, String: "日本"}
+	var atv4 = AttributeValue{Encoding: UTF8String, Value: "日本"}
 	var atnv4 = AttributeTypeAndValue{Type: CommonName, Value: atv4}
 	type args struct {
 		atv AttributeTypeAndValue
@@ -556,9 +556,9 @@ func Test_convertToInnerAttributeTypeAndValue(t *testing.T) {
 }
 
 func Test_convertToInnerRDNSET(t *testing.T) {
-	var atv1 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, String: "a"}}
+	var atv1 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}}
 	var rv1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("130161")} //PrintableString "a"
-	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, String: "aa"}}
+	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
 	var rv2 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "aa"
 	type args struct {
 		rdn RDN
@@ -596,13 +596,13 @@ func Test_convertToInnerRDNSET(t *testing.T) {
 }
 
 func Test_convertToInnerDN(t *testing.T) {
-	var atv1 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, String: "a"}}
+	var atv1 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}}
 	var rv1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("130161")} //PrintableString "a"
 	var rdn1 = RDN{atv1}
-	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, String: "aa"}}
+	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
 	var rv2 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "a"
 	var rdn2 = RDN{atv2}
-	var atv3 = AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: PrintableString, String: "aa"}}
+	var atv3 = AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
 	var rdn3 = RDN{atv3}
 	type args struct {
 		dn DN
@@ -646,19 +646,19 @@ func Test_convertToInnerDN(t *testing.T) {
 
 func TestMarshalDN(t *testing.T) {
 	var dn1 = DN{
-		RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, String: "JP"}}},
-		RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String, String: "example"}}},
-		RDN{AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Ext"}}},
+		RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "JP"}}},
+		RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String, Value: "example"}}},
+		RDN{AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Ext"}}},
 		RDN{
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Dev"}},
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "Sales"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Dev"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "Sales"}},
 		},
 		RDN{
-			AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, String: "ex"}},
-			AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{Encoding: IA5String, String: "ex@example.com"}}},
+			AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, Value: "ex"}},
+			AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{Encoding: IA5String, Value: "ex@example.com"}}},
 	}
 	var dn2 = DN{
-		RDN{AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: UTF8String, String: "cn1"}}},
+		RDN{AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: UTF8String, Value: "cn1"}}},
 	}
 	//C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com
 	var dnbytes1 = decode("3073310b3009060355040613024a503110300e060355040a0c076578616d706c65310c300a060355040b0c03457874311a300a060355040b0c03446576300c060355040b0c0553616c65733128300906035504030c026578301b06092a864886f70d010901160e6578406578616d706c652e636f6d")
@@ -696,15 +696,15 @@ func TestMarshalDN(t *testing.T) {
 func TestMarshalDNToParseDERDn(t *testing.T) {
 	var inDn = DN{
 		RDN{
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "a2"}},
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "a1"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a2"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a1"}},
 		},
 	}
 	//AttributeTypeAndValues of the dn are Binary sorted.
 	var expectedDn = DN{
 		RDN{
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "a1"}},
-			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, String: "a2"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a1"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a2"}},
 		},
 	}
 	marshaledDn, _ := MarshalDN(inDn)
