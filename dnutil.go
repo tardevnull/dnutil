@@ -149,6 +149,11 @@ func (a AttributeType) String() string {
 	}
 }
 
+//String returns a string representation of this AttributeValue.
+func (av AttributeValue) String() string {
+	return av.Value
+}
+
 //ToRFC4514FormatString returns an RFC4514 Format string of this AttributeValue.
 func (av AttributeValue) ToRFC4514FormatString() string {
 	//https://www.rfc-editor.org/rfc/rfc4514#section-2.4
