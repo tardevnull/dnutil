@@ -1497,3 +1497,31 @@ func TestDN_ToRFC4514FormatString(t *testing.T) {
 		})
 	}
 }
+
+func TestDN_String(t *testing.T) {
+	rdn1 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}}
+	rdn2 := RDN{AttributeTypeAndValue{CountryName, AttributeValue{UTF8String, "JP"}}}
+	atv1 := AttributeTypeAndValue{CommonName, AttributeValue{UTF8String, "Mike"}}
+	atv2 := AttributeTypeAndValue{ElectronicMailAddress, AttributeValue{IA5String, "Mike@example.org"}}
+	rdn3 := RDN{atv1, atv2}
+	rdn4 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#株式会社Example"}}}
+
+	tests := []struct {
+		name string
+		d    DN
+		want string
+	}{
+		{"TestCase: 0 RDN", DN{}, ""},
+		{"TestCase: o,c", DN{rdn1, rdn2}, "O=AAA,C=JP"},
+		{"TestCase: cn+email,c", DN{rdn3, rdn2}, "CN=Mike+EMAIL=Mike@example.org,C=JP"},
+		{"TestCase: escaped o,c", DN{rdn4, rdn2}, "O=#株式会社Example,C=JP"},
+		{"TestCase: cn+email,o,c", DN{rdn3, rdn1, rdn2}, "CN=Mike+EMAIL=Mike@example.org,O=AAA,C=JP"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.d.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

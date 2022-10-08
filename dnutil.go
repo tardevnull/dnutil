@@ -150,6 +150,20 @@ func (a AttributeType) String() string {
 	}
 }
 
+//String returns a string representation of this DN.
+//All string representations of RDN in the DN are concatenated with ",".
+func (d DN) String() string {
+	if d.CountRDN() == 0 {
+		return ""
+	}
+	out := d
+	var rdns []string
+	for _, rdn := range out {
+		rdns = append(rdns, rdn.String())
+	}
+	return strings.Join(rdns, ",")
+}
+
 //ToRFC4514FormatString returns an RFC4514 Format string of this DN.
 func (d DN) ToRFC4514FormatString() string {
 	//https://www.rfc-editor.org/rfc/rfc4514#section-2.1
