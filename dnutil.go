@@ -150,6 +150,20 @@ func (a AttributeType) String() string {
 	}
 }
 
+//ToRFC4514FormatString returns an RFC4514 Format string of this RDN.
+func (r RDN) ToRFC4514FormatString() string {
+	//https://www.rfc-editor.org/rfc/rfc4514#section-2.2
+	var atvs []string
+	for _, atv := range r {
+		//the output consists of the string encodings of
+		//each AttributeTypeAndValue (according to Section 2.3), in any order.
+		atvs = append(atvs, atv.ToRFC4514FormatString())
+	}
+	//Where there is a multi-valued RDN, the outputs from adjoining AttributeTypeAndValues are separated
+	//by a plus sign ('+' U+002B) character.
+	return strings.Join(atvs, "+")
+}
+
 //String returns a string representation of this AttributeTypeAndValue.
 //The attribute type is uppercase, and the attribute type and value are concatenated by "=".
 func (atv AttributeTypeAndValue) String() string {

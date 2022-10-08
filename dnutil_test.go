@@ -1376,3 +1376,36 @@ func TestAttributeTypeAndValue_String(t *testing.T) {
 		})
 	}
 }
+
+func TestRDN_ToRFC4514FormatString(t *testing.T) {
+	tests := []struct {
+		name string
+		r    RDN
+		want string
+	}{
+		{"TestCase: 0 RDN", RDN{}, ""},
+		{"TestCase: single RDN with leading SPACE",
+			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " AAA"}}}, "O=\\ AAA"},
+		{"TestCase: single RDN with leading #",
+			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#AAA"}}}, "O=\\#AAA"},
+		{"TestCase: 2 RDN",
+			RDN{
+				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}},
+				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "BBB"}},
+			},
+			"O=AAA+O=BBB"},
+		{"TestCase: 2 RDN with leading SPACE",
+			RDN{
+				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " AAA"}},
+				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " BBB"}},
+			},
+			"O=\\ AAA+O=\\ BBB"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.r.ToRFC4514FormatString(); got != tt.want {
+				t.Errorf("ToRFC4514FormatString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
