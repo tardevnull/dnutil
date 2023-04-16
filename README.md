@@ -8,7 +8,7 @@ With this library, you can easily and freely create [Issuer](https://datatracker
 ## Installation
 
 ```sh
-go get github.com/tardevnull/dnutil
+go install github.com/tardevnull/dnutil@latest
 ```
 
 ## Example
@@ -31,7 +31,7 @@ import (
 
 func main() {
 
-	//CN=ex+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
+	//CN=ex+0.9.2342.19200300.100.1.1=userid_0001+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
 	d := dnutil.DN{
 		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.CountryName, Value: dnutil.AttributeValue{Encoding: dnutil.PrintableString, Value: "JP"}}},
 		dnutil.RDN{dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "example"}}},
@@ -42,6 +42,7 @@ func main() {
 		},
 		dnutil.RDN{
 			dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+			dnutil.AttributeTypeAndValue{Type: dnutil.Generic, Oid: "0.9.2342.19200300.100.1.1", Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "userid_0001"}},
 			dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
 	}
 
@@ -84,22 +85,24 @@ func main() {
 
 }
 ```
-[example](https://go.dev/play/p/s7SxXlzm-TK)
+[example](https://go.dev/play/p/theWxZMtALk)
+
 
 ## Usage
 ### type DN []RDN
 DN represents an ASN.1 DistinguishedName object.
 ```
 //Distinguished Name Example
-CN=ex+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
+CN=ex+0.9.2342.19200300.100.1.1=userid_0001+E=ex@example.com,OU=Dev+OU=Sales,OU=Ext,O=example,C=JP
 
 C: PrintableString
 O: UTF8String
 OU=Ext: UTF8String
 OU=Dev: UTF8String
 OU=Sales: UTF8String
-CN:UTF8String
-EMAIL(ElectronicMailAddress):IA5String
+CN: UTF8String
+UID(0.9.2342.19200300.100.1.1): UTF8String
+EMAIL(ElectronicMailAddress): IA5String
 ```
 you can write it as DN struct:
 ```
@@ -112,56 +115,62 @@ var d = dnutil.DN{
 		dnutil.AttributeTypeAndValue{Type: dnutil.OrganizationalUnit, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "Sales"}},},
 	dnutil.RDN{
 		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.Generic, Oid: "0.9.2342.19200300.100.1.1", Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "userid_0001"}},
 		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
 }
 ```
 #### Note:
 - RDN of the DN should have at least one AttributeTypeAndValue element.
-
-- AttributeValue of the DN currently supported are following ASN.1 string encodings:
+- AttributeValue currently supports the following ASN.1 string encodings:
 ```
   PrintableString 
   UTF8String
   IA5String
 ```
-- AttributeType of the DN currently supported are following AttributeTypes:
+- AttributeType currently supports the following AttributeTypes:
 ```
-  CountryName
-  OrganizationName
-  OrganizationalUnit
-  DnQualifier
-  StateOrProvinceName
-  CommonName
-  SerialNumber
-  LocalityName
-  Title
-  Surname
-  GivenName
-  Initials
-  Pseudonym
-  GenerationQualifier
-  ElectronicMailAddress
-  DomainComponent
+  CountryName (2.5.4.6)
+  OrganizationName (2.5.4.10)
+  OrganizationalUnit (2.5.4.11)
+  DnQualifier (2.5.4.46)
+  StateOrProvinceName (2.5.4.8)
+  CommonName (2.5.4.3)
+  SerialNumber (2.5.4.5)
+  LocalityName (2.5.4.7)
+  Title (2.5.4.12)
+  Surname (2.5.4.4)
+  GivenName (2.5.4.42)
+  Initials (2.5.4.43)
+  Pseudonym (2.5.4.65)
+  GenerationQualifier (2.5.4.44)
+  ElectronicMailAddress (1.2.840.113549.1.9.1)
+  DomainComponent (0.9.2342.19200300.100.1.25)
+  Generic (Any OBJECT IDENTIFIER)
 ```
-- AttributeTypeAndValue of the DN currently supported are following combinations of AttributeType and Encoding of the AttributeValue:
+- Any object identifier can be specified by setting Generic to Type and object identifier to Oid.
+- If Type is Generic, Oid must be specified.
+- Currently, the following combinations of OBJECT IDENTIFIER for AttributeType and Encoding for AttributeValue are supported:
 ```
-  CountryName : PrintableString
-  OrganizationName : PrintableString or UTF8String
-  OrganizationalUnit : PrintableString or UTF8String
-  DnQualifier : PrintableString
-  StateOrProvinceName : PrintableString or UTF8String
-  CommonName : PrintableString or UTF8String
-  SerialNumber : PrintableString
-  LocalityName : PrintableString or UTF8String
-  Title : PrintableString or UTF8String
-  Surname : PrintableString or UTF8String
-  GivenName : PrintableString or UTF8String
-  Initials : PrintableString or UTF8String
-  Pseudonym : PrintableString or UTF8String
-  GenerationQualifier : PrintableString or UTF8String
-  ElectronicMailAddress : IA5String
-  DomainComponent : IA5String
+  2.5.4.6 (CountryName) : PrintableString
+  2.5.4.10 (OrganizationName) : PrintableString or UTF8String
+  2.5.4.11 (OrganizationalUnit) : PrintableString or UTF8String
+  2.5.4.46 (DnQualifier) : PrintableString
+  2.5.4.8 (StateOrProvinceName) : PrintableString or UTF8String
+  2.5.4.3 (CommonName) : PrintableString or UTF8String
+  2.5.4.5 (SerialNumber) : PrintableString
+  2.5.4.7 (LocalityName) : PrintableString or UTF8String
+  2.5.4.12 (Title) : PrintableString or UTF8String
+  2.5.4.4 (Surname) : PrintableString or UTF8String
+  2.5.4.42 (GivenName) : PrintableString or UTF8String
+  2.5.4.43 (Initials) : PrintableString or UTF8String
+  2.5.4.65 (Pseudonym) : PrintableString or UTF8String
+  2.5.4.44 (GenerationQualifier) : PrintableString or UTF8String
+  1.2.840.113549.1.9.1 (ElectronicMailAddress) : IA5String
+  0.9.2342.19200300.100.1.25 (DomainComponent) : IA5String
+  Any OBJECT IDENTIFIER other than those already listed (Generic) : PrintableString or UTF8String or IA5String 
 ```
+- If Type is Generic and Oid is a known AttributeType object identifier(CountryName(="2.5.4.6"), OrganizationName(="2.5.4.10"), etc.), the combination follows the one already enumerated.
+ex: If Type: Generic, Oid: "2.5.4.6"(=CountryName), then only PrintableString is allowed. 
 
 ### func MarshalDN(dn DN) (dnBytes []byte, err error)
 MarshalDN converts a DN to distinguished name (DN), ASN.1 DER form.
@@ -178,32 +187,13 @@ b := []byte{0x30, 0x0e, 0x31, 0x0c, 0x30, 0x0a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x
 dn, err := dnutil.ParseDERDN(b)
 ```
 #### Note:
-- AttributeValue of the distinguished name currently supported are following ASN.1 string encodings:
+- AttributeValue of the relative distinguished name currently supported are following ASN.1 string encodings:
 ```
 PrintableString
 UTF8String
 IA5String
 ```
-- AttributeType of the distinguished name currently supported are following OBJECT IDENTIFIER of AttributeTypes:
-```
-2.5.4.6  CountryName
-2.5.4.10  OrganizationName
-2.5.4.11  OrganizationalUnit
-2.5.4.46  DnQualifier
-2.5.4.8  StateOrProvinceName
-2.5.4.3  CommonName
-2.5.4.5  SerialNumber
-2.5.4.7  LocalityName
-2.5.4.12  Title
-2.5.4.4  Surname
-2.5.4.42  GivenName
-2.5.4.43  Initials
-2.5.4.65  Pseudonym
-2.5.4.44  GenerationQualifier
-1.2.840.113549.1.9.1  ElectronicMailAddress
-0.9.2342.19200300.100.1.25  DomainComponent
-```
-- AttributeTypeAndValue of the distinguished name currently supported are following combinations of OBJECT IDENTIFIER of AttributeType and Encoding of the AttributeValue:
+- AttributeTypeAndValue of the relative distinguished name currently supported are following combinations of OBJECT IDENTIFIER of AttributeType and Encoding of the AttributeValue:
 ```
 2.5.4.6  : PrintableString
 2.5.4.10 : PrintableString or UTF8String
@@ -221,6 +211,7 @@ IA5String
 2.5.4.44 : PrintableString or UTF8String
 1.2.840.113549.1.9.1 : IA5String
 0.9.2342.19200300.100.1.25 : IA5String
+The other OBJECT IDENTIFIER : PrintableString or UTF8String or IA5String
 ```
 
 ### func (d DN) ToRFC4514FormatString() string
@@ -236,12 +227,13 @@ d := dnutil.DN{
 	},
 	dnutil.RDN{
 		dnutil.AttributeTypeAndValue{Type: dnutil.CommonName, Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "ex"}},
+		dnutil.AttributeTypeAndValue{Type: dnutil.Generic, Oid: "0.9.2342.19200300.100.1.1", Value: dnutil.AttributeValue{Encoding: dnutil.UTF8String, Value: "userid_0001"}},
 		dnutil.AttributeTypeAndValue{Type: dnutil.ElectronicMailAddress, Value: dnutil.AttributeValue{Encoding: dnutil.IA5String, Value: "ex@example.com"}}},
 }
 ```
 
 ```
-RFC4514 section2 Format:  CN=ex+EMAIL=ex@example.com,OU=\#Dev+OU=\ Sales,OU=A\,B\;,O=example Co.\, Ltd,C=JP
+RFC4514 section2 Format: CN=ex+0.9.2342.19200300.100.1.1=userid_0001+EMAIL=ex@example.com,OU=\#Dev+OU=\ Sales,OU=A\,B\;,O=example Co.\, Ltd,C=JP
 ```
 
 ## License

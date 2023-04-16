@@ -298,7 +298,7 @@ func Test_convertToAttributeTypeAndValue(t *testing.T) {
 	}{
 		{"TestCase:CountryName PrintableString JP", args{iatv1}, AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "JP"}}, false},
 		{"TestCase:CountryName PrintableString Broken data", args{iatv2}, AttributeTypeAndValue{}, true},
-		{"TestCase:Wrong OID PrintableString JP", args{iatv3}, AttributeTypeAndValue{}, true},
+		{"TestCase:Generic PrintableString JP", args{iatv3}, AttributeTypeAndValue{Type: Generic, Value: AttributeValue{Encoding: PrintableString, Value: "JP"}, Oid: asn1.ObjectIdentifier{9, 9, 9, 9}.String()}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -317,11 +317,11 @@ func Test_convertToAttributeTypeAndValue(t *testing.T) {
 func Test_convertToRdn(t *testing.T) {
 	var r1 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("61"), FullBytes: decode("130161")}     //PrintableString a
 	var r2 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("6161"), FullBytes: decode("13026161")} //PrintableString a
-
+	var r3 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("6161"), FullBytes: decode("6161")}     //PrintableString Broken
 	var iatv1 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: r1}
 	var iatv2 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: r2}
 	var iatv3 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{9, 9, 9, 9}, Value: r1}
-
+	var iatv4 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{9, 9, 9, 9}, Value: r3}
 	type args struct {
 		irdn innerRDNSET
 	}
@@ -332,7 +332,7 @@ func Test_convertToRdn(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"TestCase:1 AttributeTypeAndValue",
+			"TestCase:1 Defined AttributeTypeAndValue",
 			args{innerRDNSET{iatv1}},
 			RDN{
 				AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString, Value: "a"}},
@@ -347,8 +347,16 @@ func Test_convertToRdn(t *testing.T) {
 			},
 			false},
 		{
-			"TestCase:Broken AttributeTypeAndValue",
+			"TestCase:3 Generic AttributeTypeAndValue",
 			args{innerRDNSET{iatv3}},
+			RDN{
+				AttributeTypeAndValue{Type: Generic, Value: AttributeValue{Encoding: PrintableString, Value: "a"}, Oid: asn1.ObjectIdentifier{9, 9, 9, 9}.String()},
+			},
+			false,
+		},
+		{
+			"TestCase:Broken AttributeTypeAndValue",
+			args{innerRDNSET{iatv4}},
 			RDN{},
 			true,
 		},
@@ -369,15 +377,18 @@ func Test_convertToRdn(t *testing.T) {
 
 func Test_convertToDn(t *testing.T) {
 	var r1 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("61"), FullBytes: decode("130161")}     //PrintableString a
-	var r2 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("6161"), FullBytes: decode("13026161")} //PrintableString a
+	var r2 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("6161"), FullBytes: decode("13026161")} //PrintableString aa
+	var r3 = asn1.RawValue{Tag: asn1.TagPrintableString, Bytes: decode("6161"), FullBytes: decode("6161")}     //PrintableString Broken
 
 	var iatv1 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: r1}
 	var iatv2 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: r2}
 	var iatv3 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{9, 9, 9, 9}, Value: r1}
+	var iatv4 = innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{9, 9, 9, 9}, Value: r3}
 
 	var irv1 = innerRDNSET{iatv1}
 	var irv2 = innerRDNSET{iatv2}
 	var irv3 = innerRDNSET{iatv3}
+	var irv4 = innerRDNSET{iatv4}
 
 	type args struct {
 		idn innerDN
@@ -412,8 +423,16 @@ func Test_convertToDn(t *testing.T) {
 			false,
 		},
 		{
-			"TestCase:Broken RDN",
+			"TestCase:3 Generic 1 RDN",
 			args{innerDN{irv3}},
+			DN{
+				RDN{AttributeTypeAndValue{Type: Generic, Value: AttributeValue{Encoding: PrintableString, Value: "a"}, Oid: asn1.ObjectIdentifier{9, 9, 9, 9}.String()}},
+			},
+			false,
+		},
+		{
+			"TestCase:Broken RDN",
+			args{innerDN{irv4}},
 			DN{},
 			true,
 		},
@@ -454,6 +473,9 @@ func TestParseDERDN(t *testing.T) {
 				RDN{AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String, Value: "cn1"}}},
 			},
 			false},
+		{"TestCase:Unsupported AttributeType DN", args{decode("300C310A300806032A0304130161")}, DN{
+			RDN{AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: PrintableString, Value: "a"}}},
+		}, false},
 		{"TestCase:Empty DN", args{decode("3000")}, DN{}, false},
 		{"TestCase:C=JP(UTF8String))", args{decode("300d310b300906035504060c024a50")}, nil, true},
 		{"TestCase:Broken DER DN", args{decode("13016161")}, nil, true},
@@ -515,6 +537,41 @@ func TestReferAttributeTypeName(t *testing.T) {
 	}
 }
 
+func Test_isDefinedOid(t *testing.T) {
+	type args struct {
+		oid asn1.ObjectIdentifier
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"TestCase:CountryName", args{asn1.ObjectIdentifier{2, 5, 4, 6}}, true},
+		{"TestCase:OrganizationName", args{asn1.ObjectIdentifier{2, 5, 4, 10}}, true},
+		{"TestCase:OrganizationalUnit", args{asn1.ObjectIdentifier{2, 5, 4, 11}}, true},
+		{"TestCase:DnQualifier", args{asn1.ObjectIdentifier{2, 5, 4, 46}}, true},
+		{"TestCase:StateOrProvinceName", args{asn1.ObjectIdentifier{2, 5, 4, 8}}, true},
+		{"TestCase:CommonName", args{asn1.ObjectIdentifier{2, 5, 4, 3}}, true},
+		{"TestCase:SerialNumber", args{asn1.ObjectIdentifier{2, 5, 4, 5}}, true},
+		{"TestCase:LocalityName", args{asn1.ObjectIdentifier{2, 5, 4, 7}}, true},
+		{"TestCase:Title", args{asn1.ObjectIdentifier{2, 5, 4, 12}}, true},
+		{"TestCase:Surname", args{asn1.ObjectIdentifier{2, 5, 4, 4}}, true},
+		{"TestCase:GivenName", args{asn1.ObjectIdentifier{2, 5, 4, 42}}, true},
+		{"TestCase:Initials", args{asn1.ObjectIdentifier{2, 5, 4, 43}}, true},
+		{"TestCase:Pseudonym", args{asn1.ObjectIdentifier{2, 5, 4, 65}}, true},
+		{"TestCase:GenerationQualifier", args{asn1.ObjectIdentifier{2, 5, 4, 44}}, true},
+		{"TestCase:ElectronicMailAddress", args{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}}, true},
+		{"TestCase:DomainComponent", args{asn1.ObjectIdentifier{0, 9, 2342, 19200300, 100, 1, 25}}, true},
+		{"TestCase:Others", args{asn1.ObjectIdentifier{9, 9, 9, 9}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isDefinedOid(tt.args.oid); got != tt.want {
+				t.Errorf("isDefinedOid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func Test_convertToInnerAttributeTypeAndValue(t *testing.T) {
 	var r1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13024A50")}    //PrintableString JP
 	var r2 = asn1.RawValue{Tag: asn1.TagUTF8String, FullBytes: decode("0C06E697A5E69CAC")} //UTF8String 日本
@@ -526,6 +583,7 @@ func Test_convertToInnerAttributeTypeAndValue(t *testing.T) {
 	var atnv3 = AttributeTypeAndValue{Type: 9999, Value: atv3}
 	var atv4 = AttributeValue{Encoding: UTF8String, Value: "日本"}
 	var atnv4 = AttributeTypeAndValue{Type: CommonName, Value: atv4}
+	var atnv5 = AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: atv4}
 	type args struct {
 		atv AttributeTypeAndValue
 	}
@@ -537,6 +595,7 @@ func Test_convertToInnerAttributeTypeAndValue(t *testing.T) {
 	}{
 		{"TestCase:CountryName PrintableString JP", args{atnv1}, innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: r1}, false},
 		{"TestCase:CommonName UTF8String 日本", args{atnv4}, innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: r2}, false},
+		{"TestCase:Generic UTF8String 日本", args{atnv5}, innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 3, 4}, Value: r2}, false},
 		{"TestCase:CountryName Unknown Encoding", args{atnv2}, innerAttributeTypeAndValue{}, true},
 		{"TestCase:CountryName Unknown AttributeType", args{atnv3}, innerAttributeTypeAndValue{}, true},
 	}
@@ -560,6 +619,8 @@ func Test_convertToInnerRDNSET(t *testing.T) {
 	var rv1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("130161")} //PrintableString "a"
 	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
 	var rv2 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "aa"
+	var atv3 = AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
+	var rv3 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "aa"
 	type args struct {
 		rdn RDN
 	}
@@ -572,6 +633,10 @@ func Test_convertToInnerRDNSET(t *testing.T) {
 		{"TestCase:1 AttributeTypeAndValue",
 			args{RDN{atv1}},
 			innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: rv1}},
+			false},
+		{"TestCase:1 Generic AttributeTypeAndValue",
+			args{RDN{atv3}},
+			innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 3, 4}, Value: rv3}},
 			false},
 		{"TestCase:2 AttributeTypeAndValue",
 			args{RDN{atv1, atv2}},
@@ -600,10 +665,13 @@ func Test_convertToInnerDN(t *testing.T) {
 	var rv1 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("130161")} //PrintableString "a"
 	var rdn1 = RDN{atv1}
 	var atv2 = AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
-	var rv2 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "a"
+	var rv2 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "aa"
 	var rdn2 = RDN{atv2}
 	var atv3 = AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
 	var rdn3 = RDN{atv3}
+	var atv4 = AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: PrintableString, Value: "aa"}}
+	var rv4 = asn1.RawValue{Tag: asn1.TagPrintableString, FullBytes: decode("13026161")} //PrintableString "aa"
+	var rdn4 = RDN{atv4}
 	type args struct {
 		dn DN
 	}
@@ -621,11 +689,22 @@ func Test_convertToInnerDN(t *testing.T) {
 			args{DN{rdn1}},
 			innerDN{innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: rv1}}},
 			false},
+		{"TestCase:1 (Generic) RDN",
+			args{DN{rdn4}},
+			innerDN{innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 3, 4}, Value: rv4}}},
+			false},
 		{"TestCase:2 RDN",
 			args{DN{rdn1, rdn2}},
 			innerDN{
 				innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: rv1}},
 				innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: rv2}},
+			},
+			false},
+		{"TestCase:2 RDN (1 Generic)",
+			args{DN{rdn1, rdn4}},
+			innerDN{
+				innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: rv1}},
+				innerRDNSET{innerAttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 3, 4}, Value: rv4}},
 			},
 			false},
 		{"TestCase:Broken RDN", args{DN{rdn3}}, innerDN{}, true},
@@ -660,10 +739,34 @@ func TestMarshalDN(t *testing.T) {
 	var dn2 = DN{
 		RDN{AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: UTF8String, Value: "cn1"}}},
 	}
+	var dn3 = DN{
+		RDN{AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.6", Value: AttributeValue{Encoding: PrintableString, Value: "JP"}}},
+		RDN{AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.10", Value: AttributeValue{Encoding: UTF8String, Value: "example"}}},
+		RDN{AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.11", Value: AttributeValue{Encoding: UTF8String, Value: "Ext"}}},
+		RDN{
+			AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.11", Value: AttributeValue{Encoding: UTF8String, Value: "Dev"}},
+			AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.11", Value: AttributeValue{Encoding: UTF8String, Value: "Sales"}},
+		},
+		RDN{
+			AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.3", Value: AttributeValue{Encoding: UTF8String, Value: "ex"}},
+			AttributeTypeAndValue{Type: Generic, Oid: "1.2.840.113549.1.9.1", Value: AttributeValue{Encoding: IA5String, Value: "ex@example.com"}}},
+	}
+	var dn4 = DN{
+		RDN{
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: PrintableString, Value: "a"}},
+			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: PrintableString, Value: "aa"}},
+		},
+	}
+	var dn5 = DN{
+		RDN{AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: PrintableString, Value: "a"}}},
+	}
 	//C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com
 	var dnbytes1 = decode("3073310b3009060355040613024a503110300e060355040a0c076578616d706c65310c300a060355040b0c03457874311a300a060355040b0c03446576300c060355040b0c0553616c65733128300906035504030c026578301b06092a864886f70d010901160e6578406578616d706c652e636f6d")
 	var dnbytes2 = decode("3000")
-
+	//OU=a(Printable)+OU=aa(Printable)
+	var dnbytes3 = decode("301731153008060355040B1301613009060355040B13026161")
+	//1.2.3.4=a(Printable)
+	var dnbytes4 = decode("300C310A300806032A0304130161")
 	type args struct {
 		dn DN
 	}
@@ -675,7 +778,9 @@ func TestMarshalDN(t *testing.T) {
 		wantErr     bool
 	}{
 		{"TestCase:C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com", args{dn1}, dnbytes1, false},
-		{"TestCase:OU=a+OU=aa ", args{dn1}, dnbytes1, false},
+		{"TestCase:Generic C=JP,O=example,OU=Ext,OU=Dev+OU=Sales,CN=ex+E=ex@example.com", args{dn3}, dnbytes1, false},
+		{"TestCase:OU=a+OU=aa ", args{dn4}, dnbytes3, false},
+		{"TestCase:Generic 1.2.3.4=a ", args{dn5}, dnbytes4, false},
 		{"TestCase: Empty DN", args{DN{}}, dnbytes2, false},
 		{"TestCase: Invalid AttributeType DN", args{dn2}, nil, true},
 	}
@@ -698,11 +803,13 @@ func TestMarshalDNToParseDERDn(t *testing.T) {
 		RDN{
 			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a2"}},
 			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a1"}},
+			AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: UTF8String, Value: "g1"}},
 		},
 	}
 	//AttributeTypeAndValues of the dn are Binary sorted.
 	var expectedDn = DN{
 		RDN{
+			AttributeTypeAndValue{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{Encoding: UTF8String, Value: "g1"}},
 			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a1"}},
 			AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String, Value: "a2"}},
 		},
@@ -827,6 +934,13 @@ func Test_isValidAttributeTypeAndAttributeValueComb(t *testing.T) {
 
 		{"TestCase: DomainComponent, IA5String", args{DomainComponent, AttributeValue{Encoding: IA5String}}, true, false},
 		{"TestCase: DomainComponent, the other", args{DomainComponent, AttributeValue{Encoding: UTF8String}}, false, true},
+
+		{"TestCase: Generic, IA5String", args{Generic, AttributeValue{Encoding: IA5String}}, true, false},
+		{"TestCase: Generic, UTF8String", args{Generic, AttributeValue{Encoding: UTF8String}}, true, false},
+		{"TestCase: Generic, PrintableString", args{Generic, AttributeValue{Encoding: PrintableString}}, true, false},
+		{"TestCase: Generic, the other", args{Generic, AttributeValue{Encoding: 999}}, false, true},
+
+		{"TestCase: UnKnown, UTF8String", args{999, AttributeValue{Encoding: UTF8String}}, false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -852,7 +966,9 @@ func Test_isPrintableStringEncoding(t *testing.T) {
 		wantOk bool
 	}{
 		{"TestCase: PrintableString", args{PrintableString}, true},
-		{"TestCase: The other", args{UTF8String}, false},
+		{"TestCase: UTF8String", args{UTF8String}, false},
+		{"TestCase: IA5String", args{IA5String}, false},
+		{"TestCase: The other", args{9999}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -873,7 +989,8 @@ func Test_isIA5StringEncoding(t *testing.T) {
 		wantOk bool
 	}{
 		{"TestCase: IA5String", args{IA5String}, true},
-		{"TestCase: The other", args{UTF8String}, false},
+		{"TestCase: UTF8String", args{UTF8String}, false},
+		{"TestCase: The other", args{9999}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -895,12 +1012,36 @@ func Test_isPrintableStringOrUTF8StringEncoding(t *testing.T) {
 	}{
 		{"TestCase: PrintableString", args{PrintableString}, true},
 		{"TestCase: UTF8String", args{UTF8String}, true},
-		{"TestCase: The other", args{IA5String}, false},
+		{"TestCase: IA5String", args{IA5String}, false},
+		{"TestCase: The other", args{9999}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotOk := isPrintableStringOrUTF8StringEncoding(tt.args.e); gotOk != tt.wantOk {
 				t.Errorf("isPrintableStringOrUTF8StringEncoding() = %v, want %v", gotOk, tt.wantOk)
+			}
+		})
+	}
+}
+
+func Test_isPrintableStringOrUTF8StringOrIA5StringEncoding(t *testing.T) {
+	type args struct {
+		e Encoding
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantOk bool
+	}{
+		{"TestCase: PrintableString", args{PrintableString}, true},
+		{"TestCase: UTF8String", args{UTF8String}, true},
+		{"TestCase: IA5String", args{IA5String}, true},
+		{"TestCase: The other", args{9999}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotOk := isPrintableStringOrUTF8StringOrIA5StringEncoding(tt.args.e); gotOk != tt.wantOk {
+				t.Errorf("isPrintableStringOrUTF8StringOrIA5StringEncoding() = %v, want %v", gotOk, tt.wantOk)
 			}
 		})
 	}
@@ -949,6 +1090,9 @@ func Test_isValidAttributeTypeAndValue(t *testing.T) {
 		{"TestCase: The other, PrintableString", args{AttributeTypeAndValue{Type: 999, Value: AttributeValue{Encoding: PrintableString}}}, false, true},
 		{"TestCase: CountryName, The other", args{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: 999}}}, false, true},
 		{"TestCase: CountryName, UTF8String", args{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: UTF8String}}}, false, true},
+		{"TestCase: Generic, PrintableString", args{AttributeTypeAndValue{Type: Generic, Oid: "1.2", Value: AttributeValue{Encoding: PrintableString}}}, true, false},
+		{"TestCase: Generic, The other", args{AttributeTypeAndValue{Type: Generic, Oid: "1.2", Value: AttributeValue{Encoding: 999}}}, false, true},
+		{"TestCase: Generic(CountryName), UTF8String", args{AttributeTypeAndValue{Type: Generic, Oid: "2.5.4.6", Value: AttributeValue{Encoding: UTF8String}}}, false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -966,7 +1110,7 @@ func Test_isValidAttributeTypeAndValue(t *testing.T) {
 
 func Test_isValidRDN(t *testing.T) {
 	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
-	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv2 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
 	atv3 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: UTF8String}}
 	atv4 := AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{Encoding: UTF8String}}
 	type args struct {
@@ -1000,7 +1144,7 @@ func Test_isValidRDN(t *testing.T) {
 
 func Test_isValidDN(t *testing.T) {
 	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
-	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv2 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
 	atv3 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: UTF8String}}
 	atv4 := AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{Encoding: UTF8String}}
 	rdn1 := RDN{atv1, atv2}
@@ -1077,6 +1221,7 @@ func TestDN_RetrieveRDNsByAttributeTypes(t *testing.T) {
 	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
 	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
 	atv4 := AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String}}
+	atv5 := AttributeTypeAndValue{Type: Generic, Oid: "1.2", Value: AttributeValue{Encoding: UTF8String}}
 	type args struct {
 		ats []AttributeType
 	}
@@ -1088,22 +1233,59 @@ func TestDN_RetrieveRDNsByAttributeTypes(t *testing.T) {
 	}{
 		{"TestCase: DN has 0 RDN, 0 AttributeType, not matched", DN{}, args{[]AttributeType{}}, []RDN{}},
 		{"TestCase: DN has 0 RDN, 1 AttributeType, not matched", DN{}, args{[]AttributeType{CountryName}}, []RDN{}},
-		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 0 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{}}, []RDN{}},
-		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 1 AttributeType, matched", DN{RDN{atv1}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
-		{"TestCase: DN has 1 RDN, RDN has 1 Attribute , 1 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{OrganizationName}}, []RDN{}},
-		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 1 AttributeType, 1 matched", DN{RDN{atv1}, RDN{atv2}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
-		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 1 AttributeType, 2 matched", DN{RDN{atv1}, RDN{atv1}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}, RDN{atv1}}},
-		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv1, atv2}}, args{[]AttributeType{CommonName, CountryName}}, []RDN{RDN{atv1, atv2}}},
-		{"TestCase: DN has 2 RDN, RDN has 1 Attribute , 2 AttributeType(Reverse Order), 1 matched", DN{RDN{atv1, atv2}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}}},
-		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, 2 matched", DN{RDN{atv1, atv2}, RDN{atv1, atv2}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}, RDN{atv1, atv2}}},
-		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}}},
-		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 2 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{OrganizationName, CommonName}}, []RDN{}},
-		{"TestCase: DN has 2 RDN, RDN has 2 Attribute , 3 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, OrganizationName, CommonName}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 0 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 AttributeType, matched", DN{RDN{atv1}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 Generic AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{Generic}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 Generic AttributeType, matched", DN{RDN{atv5}}, args{[]AttributeType{Generic}}, []RDN{RDN{atv5}}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 AttributeType, not matched", DN{RDN{atv1}}, args{[]AttributeType{OrganizationName}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, the RDN has 1 Attribute , 1 AttributeType, 1 matched", DN{RDN{atv1}, RDN{atv2}}, args{[]AttributeType{CountryName}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, 2 matched", DN{RDN{atv1, atv2}, RDN{atv1, atv2}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}, RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, CommonName}}, []RDN{RDN{atv1, atv2}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 Generic AttributeType, 2 matched", DN{RDN{atv5, atv5}, RDN{atv5, atv5}}, args{[]AttributeType{Generic, Generic}}, []RDN{RDN{atv5, atv5}, RDN{atv5, atv5}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 Generic AttributeType, 1 matched", DN{RDN{atv1, atv2}, RDN{atv5, atv2}}, args{[]AttributeType{Generic, CommonName}}, []RDN{RDN{atv5, atv2}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{OrganizationName, CommonName}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 3 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]AttributeType{CountryName, OrganizationName, CommonName}}, []RDN{}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotRdns := tt.d.RetrieveRDNsByAttributeTypes(tt.args.ats); !reflect.DeepEqual(gotRdns, tt.wantRdns) {
 				t.Errorf("RetrieveRDNsByAttributeTypes() = %v, want %v", gotRdns, tt.wantRdns)
+			}
+		})
+	}
+}
+
+func TestDN_RetrieveRDNsByOids(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: OrganizationalUnit, Value: AttributeValue{Encoding: UTF8String}}
+	atv5 := AttributeTypeAndValue{Type: Generic, Oid: "1.2", Value: AttributeValue{Encoding: UTF8String}}
+	atv6 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		oids []string
+	}
+	tests := []struct {
+		name     string
+		d        DN
+		args     args
+		wantRdns []RDN
+	}{
+		{"TestCase: DN has 0 RDN, 0 AttributeType, not matched", DN{}, args{[]string{}}, []RDN{}},
+		{"TestCase: DN has 0 RDN, 1 AttributeType, not matched", DN{}, args{[]string{"2.5.4.6"}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 0 AttributeType, not matched", DN{RDN{atv1}}, args{[]string{}}, []RDN{}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 AttributeType, matched", DN{RDN{atv1}}, args{[]string{"2.5.4.6"}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 1 RDN, the RDN has 1 Attribute , 1 AttributeType, not matched", DN{RDN{atv1}}, args{[]string{"2.5.4.11"}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, the RDN has 1 Attribute , 1 AttributeType, 1 matched", DN{RDN{atv1}, RDN{atv2}}, args{[]string{"2.5.4.6"}}, []RDN{RDN{atv1}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, 2 matched", DN{RDN{atv5, atv6}, RDN{atv6, atv5}}, args{[]string{"1.2", "1.2.3"}}, []RDN{RDN{atv5, atv6}, RDN{atv6, atv5}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, 1 matched", DN{RDN{atv5, atv6}, RDN{atv5, atv5}}, args{[]string{"1.2", "1.2.3"}}, []RDN{RDN{atv5, atv6}}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 2 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]string{"2.5.4.10", "2.5.4.6"}}, []RDN{}},
+		{"TestCase: DN has 2 RDN, the RDN has 2 Attribute , 3 AttributeType, not matched", DN{RDN{atv1, atv2}, RDN{atv3, atv4}}, args{[]string{"2.5.4.6", "2.5.4.10", "2.5.4.6"}}, []RDN{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotRdns := tt.d.RetrieveRDNsByOids(tt.args.oids); !reflect.DeepEqual(gotRdns, tt.wantRdns) {
+				t.Errorf("RetrieveRDNsByOids() = %v, want %v", gotRdns, tt.wantRdns)
 			}
 		})
 	}
@@ -1142,6 +1324,7 @@ func Test_isMatchedRDN(t *testing.T) {
 	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
 	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
 	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
 	type args struct {
 		r   RDN
 		ats []AttributeType
@@ -1152,8 +1335,11 @@ func Test_isMatchedRDN(t *testing.T) {
 		wantIsMatched bool
 	}{
 		{"TestCase: 1 Attributes matched", args{RDN{atv1}, []AttributeType{CountryName}}, true},
+		{"TestCase: 1 Attributes matched (Generic)", args{RDN{atv4}, []AttributeType{Generic}}, true},
 		{"TestCase: 2 Attributes matched", args{RDN{atv1, atv2}, []AttributeType{CountryName, CommonName}}, true},
+		{"TestCase: 2 Attributes matched (Generic)", args{RDN{atv4, atv2}, []AttributeType{Generic, CommonName}}, true},
 		{"TestCase: 2 Attributes(Revers order) matched", args{RDN{atv1, atv2}, []AttributeType{CommonName, CountryName}}, true},
+		{"TestCase: 2 Attributes(Generic, Revers order) matched", args{RDN{atv4, atv2}, []AttributeType{CommonName, Generic}}, true},
 		{"TestCase: 3 Attributes not matched", args{RDN{atv1, atv2, atv3}, []AttributeType{CommonName, CountryName, CommonName}}, false},
 	}
 	for _, tt := range tests {
@@ -1165,10 +1351,42 @@ func Test_isMatchedRDN(t *testing.T) {
 	}
 }
 
+func Test_isMatchedRDNByOids(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		r    RDN
+		oids []string
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantIsMatched bool
+	}{
+		{"TestCase: 1 Attributes matched", args{RDN{atv1}, []string{"2.5.4.6"}}, true},
+		{"TestCase: 1 Attributes matched (Generic)", args{RDN{atv4}, []string{"1.2.3"}}, true},
+		{"TestCase: 2 Attributes matched", args{RDN{atv1, atv2}, []string{"2.5.4.6", "2.5.4.3"}}, true},
+		{"TestCase: 2 Attributes matched (Generic)", args{RDN{atv4, atv2}, []string{"1.2.3", "2.5.4.3"}}, true},
+		{"TestCase: 2 Attributes(Revers order) matched", args{RDN{atv1, atv2}, []string{"2.5.4.3", "2.5.4.6"}}, true},
+		{"TestCase: 2 Attributes(Generic, Revers order) matched", args{RDN{atv4, atv2}, []string{"2.5.4.3", "1.2.3"}}, true},
+		{"TestCase: 3 Attributes not matched", args{RDN{atv1, atv2, atv3}, []string{"2.5.4.3", "2.5.4.6", "2.5.4.3"}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotIsMatched := isMatchedRDNByOids(tt.args.r, tt.args.oids); gotIsMatched != tt.wantIsMatched {
+				t.Errorf("isMatchedRDNByOids() = %v, want %v", gotIsMatched, tt.wantIsMatched)
+			}
+		})
+	}
+}
+
 func Test_findMatchedAttributeTypeIndex(t *testing.T) {
 	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
 	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
 	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
 	type args struct {
 		r  RDN
 		at AttributeType
@@ -1179,15 +1397,48 @@ func Test_findMatchedAttributeTypeIndex(t *testing.T) {
 		wantIndex int
 	}{
 		{"TestCase: 0 Attributes  not matched", args{RDN{}, CountryName}, -1},
-		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, CountryName}, 0},
-		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, CommonName}, 1},
-		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, OrganizationName}, 2},
-		{"TestCase: 3 Attributes  matched", args{RDN{atv1, atv2, atv3}, OrganizationalUnit}, -1},
+		{"TestCase: 3 Attributes  matched index 0", args{RDN{atv1, atv2, atv3}, CountryName}, 0},
+		{"TestCase: 3 Attributes  matched index 1", args{RDN{atv1, atv2, atv3}, CommonName}, 1},
+		{"TestCase: 3 Attributes  matched index 2", args{RDN{atv1, atv2, atv3}, OrganizationName}, 2},
+		{"TestCase: 3 Attributes  not matched", args{RDN{atv1, atv2, atv3}, OrganizationalUnit}, -1},
+		{"TestCase: 4 Attributes  matched index 1", args{RDN{atv1, atv4, atv2, atv3}, Generic}, 1},
+		{"TestCase: 3 Attributes  not matched", args{RDN{atv1, atv4, atv2, atv3}, OrganizationalUnit}, -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotIndex := findMatchedAttributeTypeIndex(tt.args.r, tt.args.at); gotIndex != tt.wantIndex {
 				t.Errorf("findMatchedAttributeTypeIndex() = %v, want %v", gotIndex, tt.wantIndex)
+			}
+		})
+	}
+}
+
+func Test_findMatchedOidIndex(t *testing.T) {
+	atv1 := AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{Encoding: PrintableString}}
+	atv2 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{Encoding: UTF8String}}
+	atv3 := AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{Encoding: UTF8String}}
+	atv4 := AttributeTypeAndValue{Type: Generic, Oid: "1.2.3", Value: AttributeValue{Encoding: UTF8String}}
+	type args struct {
+		r   RDN
+		oid string
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantIndex int
+	}{
+		{"TestCase: 0 Attributes  not matched", args{RDN{}, "2.5.4.6"}, -1},
+		{"TestCase: 3 Attributes  matched index 0", args{RDN{atv1, atv2, atv3}, "2.5.4.6"}, 0},
+		{"TestCase: 3 Attributes  matched index 1", args{RDN{atv1, atv2, atv3}, "2.5.4.3"}, 1},
+		{"TestCase: 3 Attributes  matched index 2", args{RDN{atv1, atv2, atv3}, "2.5.4.10"}, 2},
+		{"TestCase: 3 Attributes  not matched", args{RDN{atv1, atv2, atv3}, "2.5.4.11"}, -1},
+		{"TestCase: 4 Attributes  matched index 1", args{RDN{atv1, atv4, atv2, atv3}, "1.2.3"}, 1},
+		{"TestCase: 3 Attributes  not matched", args{RDN{atv1, atv4, atv2, atv3}, "2.5.4.11"}, -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotIndex := findMatchedOidIndex(tt.args.r, tt.args.oid); gotIndex != tt.wantIndex {
+				t.Errorf("findMatchedOidIndex() = %v, want %v", gotIndex, tt.wantIndex)
 			}
 		})
 	}
@@ -1325,22 +1576,26 @@ func TestAttributeTypeAndValue_ToRFC4514FormatString(t *testing.T) {
 	type fields struct {
 		Type  AttributeType
 		Value AttributeValue
+		Oid   string
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		{"TestCase: OrganizationName AAA", fields{OrganizationName, AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
-		{"TestCase: DnQualifier AAA", fields{DnQualifier, AttributeValue{UTF8String, "AAA"}}, "DNQUALIFIER=AAA"},
-		{"TestCase: LocalityName  AAA", fields{LocalityName, AttributeValue{UTF8String, " AAA"}}, "L=\\ AAA"},
-		{"TestCase: CommonName James (U+0022)Jim(U+0022) Smith, III", fields{CommonName, AttributeValue{UTF8String, "James \"Jim\" Smith, III"}}, "CN=James \\\"Jim\\\" Smith\\, III"},
+		{"TestCase: OrganizationName AAA", fields{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
+		{"TestCase: Generic OID=1.2.3.4 AAA", fields{Type: Generic, Oid: "1.2.3.4", Value: AttributeValue{UTF8String, "AAA"}}, "1.2.3.4=AAA"},
+		{"TestCase: Generic OID=2.5.4.10(OrganizationName) AAA", fields{Type: Generic, Oid: "2.5.4.10", Value: AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
+		{"TestCase: DnQualifier AAA", fields{Type: DnQualifier, Value: AttributeValue{UTF8String, "AAA"}}, "DNQUALIFIER=AAA"},
+		{"TestCase: LocalityName  AAA", fields{Type: LocalityName, Value: AttributeValue{UTF8String, " AAA"}}, "L=\\ AAA"},
+		{"TestCase: CommonName James (U+0022)Jim(U+0022) Smith, III", fields{Type: CommonName, Value: AttributeValue{UTF8String, "James \"Jim\" Smith, III"}}, "CN=James \\\"Jim\\\" Smith\\, III"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			atv := AttributeTypeAndValue{
 				Type:  tt.fields.Type,
 				Value: tt.fields.Value,
+				Oid:   tt.fields.Oid,
 			}
 			if got := atv.ToRFC4514FormatString(); got != tt.want {
 				t.Errorf("ToRFC4514FormatString() = %v, want %v", got, tt.want)
@@ -1353,22 +1608,25 @@ func TestAttributeTypeAndValue_String(t *testing.T) {
 	type fields struct {
 		Type  AttributeType
 		Value AttributeValue
+		Oid   string
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		{"TestCase: OrganizationName AAA", fields{OrganizationName, AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
-		{"TestCase: DnQualifier AAA", fields{DnQualifier, AttributeValue{UTF8String, "AAA"}}, "DNQUALIFIER=AAA"},
-		{"TestCase: LocalityName  AAA", fields{LocalityName, AttributeValue{UTF8String, " AAA"}}, "L= AAA"},
-		{"TestCase: CommonName James (U+0022)Jim(U+0022) Smith, III", fields{CommonName, AttributeValue{UTF8String, "James \"Jim\" Smith, III"}}, "CN=James \"Jim\" Smith, III"},
+		{"TestCase: OrganizationName AAA", fields{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}, "O=AAA"},
+		{"TestCase: DnQualifier AAA", fields{Type: DnQualifier, Value: AttributeValue{UTF8String, "AAA"}}, "DNQUALIFIER=AAA"},
+		{"TestCase: Generic Oid=1.2.3 AAA", fields{Type: Generic, Value: AttributeValue{UTF8String, "AAA"}, Oid: "1.2.3"}, "1.2.3=AAA"},
+		{"TestCase: LocalityName  AAA", fields{Type: LocalityName, Value: AttributeValue{UTF8String, " AAA"}}, "L= AAA"},
+		{"TestCase: CommonName James (U+0022)Jim(U+0022) Smith, III", fields{Type: CommonName, Value: AttributeValue{UTF8String, "James \"Jim\" Smith, III"}}, "CN=James \"Jim\" Smith, III"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			atv := AttributeTypeAndValue{
 				Type:  tt.fields.Type,
 				Value: tt.fields.Value,
+				Oid:   tt.fields.Oid,
 			}
 			if got := atv.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
@@ -1385,19 +1643,19 @@ func TestRDN_ToRFC4514FormatString(t *testing.T) {
 	}{
 		{"TestCase: 0 RDN", RDN{}, ""},
 		{"TestCase: single RDN with leading SPACE",
-			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " AAA"}}}, "O=\\ AAA"},
+			RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, " AAA"}}}, "O=\\ AAA"},
 		{"TestCase: single RDN with leading #",
-			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#AAA"}}}, "O=\\#AAA"},
+			RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "#AAA"}}}, "O=\\#AAA"},
 		{"TestCase: 2 RDN",
 			RDN{
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}},
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "BBB"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "BBB"}},
 			},
 			"O=AAA+O=BBB"},
 		{"TestCase: 2 RDN with leading SPACE",
 			RDN{
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " AAA"}},
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " BBB"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, " AAA"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, " BBB"}},
 			},
 			"O=\\ AAA+O=\\ BBB"},
 	}
@@ -1418,17 +1676,17 @@ func TestRDN_String(t *testing.T) {
 	}{
 		{"TestCase: 0 RDN", RDN{}, ""},
 		{"TestCase: single RDN",
-			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}},
+			RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}},
 			"O=AAA"},
 		{"TestCase: single RDN with leading SPACE",
-			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, " AAA"}}}, "O= AAA"},
+			RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, " AAA"}}}, "O= AAA"},
 		{"TestCase: single RDN with leading #",
-			RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#AAA"}}}, "O=#AAA"},
+			RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "#AAA"}}}, "O=#AAA"},
 
 		{"TestCase: 2 RDN",
 			RDN{
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}},
-				AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "BBB"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}},
+				AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "BBB"}},
 			},
 			"O=AAA+O=BBB"},
 	}
@@ -1442,12 +1700,12 @@ func TestRDN_String(t *testing.T) {
 }
 
 func TestDN_ReverseDnOrder(t *testing.T) {
-	rdn1 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}}
-	rdn2 := RDN{AttributeTypeAndValue{CountryName, AttributeValue{UTF8String, "JP"}}}
-	atv1 := AttributeTypeAndValue{CommonName, AttributeValue{UTF8String, "Mike"}}
-	atv2 := AttributeTypeAndValue{ElectronicMailAddress, AttributeValue{IA5String, "Mike@example.org"}}
+	rdn1 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}}
+	rdn2 := RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{UTF8String, "JP"}}}
+	atv1 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{UTF8String, "Mike"}}
+	atv2 := AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{IA5String, "Mike@example.org"}}
 	rdn3 := RDN{atv1, atv2}
-	rdn4 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#株式会社Example"}}}
+	rdn4 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "#株式会社Example"}}}
 
 	tests := []struct {
 		name string
@@ -1471,13 +1729,13 @@ func TestDN_ReverseDnOrder(t *testing.T) {
 }
 
 func TestDN_ToRFC4514FormatString(t *testing.T) {
-	rdn1 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}}
-	rdn2 := RDN{AttributeTypeAndValue{CountryName, AttributeValue{UTF8String, "JP"}}}
-	atv1 := AttributeTypeAndValue{CommonName, AttributeValue{UTF8String, "Mike"}}
-	atv2 := AttributeTypeAndValue{ElectronicMailAddress, AttributeValue{IA5String, "Mike@example.org"}}
+	rdn1 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}}
+	rdn2 := RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{UTF8String, "JP"}}}
+	atv1 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{UTF8String, "Mike"}}
+	atv2 := AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{IA5String, "Mike@example.org"}}
 	rdn3 := RDN{atv1, atv2}
-	rdn4 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#株式会社Example"}}}
-
+	rdn4 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "#株式会社Example"}}}
+	rdn5 := RDN{AttributeTypeAndValue{Type: Generic, Value: AttributeValue{UTF8String, "AAA"}, Oid: "1.2.3.4"}}
 	tests := []struct {
 		name string
 		d    DN
@@ -1485,6 +1743,7 @@ func TestDN_ToRFC4514FormatString(t *testing.T) {
 	}{
 		{"TestCase: 0 RDN", DN{}, ""},
 		{"TestCase: o,c", DN{rdn1, rdn2}, "C=JP,O=AAA"},
+		{"TestCase: 1.2.3.4,o,c", DN{rdn5, rdn1, rdn2}, "C=JP,O=AAA,1.2.3.4=AAA"},
 		{"TestCase: cn+email,c", DN{rdn3, rdn2}, "C=JP,CN=Mike+EMAIL=Mike@example.org"},
 		{"TestCase: escaped o,c", DN{rdn4, rdn2}, "C=JP,O=\\#株式会社Example"},
 		{"TestCase: cn+email,o,c", DN{rdn3, rdn1, rdn2}, "C=JP,O=AAA,CN=Mike+EMAIL=Mike@example.org"},
@@ -1499,12 +1758,12 @@ func TestDN_ToRFC4514FormatString(t *testing.T) {
 }
 
 func TestDN_String(t *testing.T) {
-	rdn1 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "AAA"}}}
-	rdn2 := RDN{AttributeTypeAndValue{CountryName, AttributeValue{UTF8String, "JP"}}}
-	atv1 := AttributeTypeAndValue{CommonName, AttributeValue{UTF8String, "Mike"}}
-	atv2 := AttributeTypeAndValue{ElectronicMailAddress, AttributeValue{IA5String, "Mike@example.org"}}
+	rdn1 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "AAA"}}}
+	rdn2 := RDN{AttributeTypeAndValue{Type: CountryName, Value: AttributeValue{UTF8String, "JP"}}}
+	atv1 := AttributeTypeAndValue{Type: CommonName, Value: AttributeValue{UTF8String, "Mike"}}
+	atv2 := AttributeTypeAndValue{Type: ElectronicMailAddress, Value: AttributeValue{IA5String, "Mike@example.org"}}
 	rdn3 := RDN{atv1, atv2}
-	rdn4 := RDN{AttributeTypeAndValue{OrganizationName, AttributeValue{UTF8String, "#株式会社Example"}}}
+	rdn4 := RDN{AttributeTypeAndValue{Type: OrganizationName, Value: AttributeValue{UTF8String, "#株式会社Example"}}}
 
 	tests := []struct {
 		name string
@@ -1521,6 +1780,125 @@ func TestDN_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.d.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertToObjectIdentifier(t *testing.T) {
+	type args struct {
+		o string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantOid asn1.ObjectIdentifier
+		wantErr bool
+	}{
+		{"TestCase: 1.2.3.4", args{"1.2.3.4"}, asn1.ObjectIdentifier{1, 2, 3, 4}, false},
+		{"TestCase: 1", args{"1"}, asn1.ObjectIdentifier{1}, false},
+		{"TestCase: 1.-3", args{"1.-3"}, nil, true},
+		{"TestCase: .", args{"."}, nil, true},
+		{"TestCase: 1.2.", args{"1.2."}, nil, true},
+		{"TestCase: 1.", args{"1."}, nil, true},
+		{"TestCase: ..", args{".."}, nil, true},
+		{"TestCase: 1.X.3", args{"1.X.3"}, nil, true},
+		{"TestCase: X.Y.Z", args{"X.Y.Z"}, nil, true},
+		{"TestCase: 1,2,3,4", args{"1,2,3,4"}, nil, true},
+		{"TestCase: blank", args{""}, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOid, err := convertToObjectIdentifier(tt.args.o)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("convertToObjectIdentifier() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotOid, tt.wantOid) {
+				t.Errorf("convertToObjectIdentifier() gotOid = %v, want %v", gotOid, tt.wantOid)
+			}
+		})
+	}
+}
+
+func TestAttributeTypeAndValue_toShortName(t *testing.T) {
+	type fields struct {
+		Type  AttributeType
+		Value AttributeValue
+		Oid   string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{"TestCase:CountryName", fields{Type: CountryName, Value: AttributeValue{}}, "c"},
+		{"TestCase:OrganizationName", fields{Type: OrganizationName, Value: AttributeValue{}}, "o"},
+		{"TestCase:OrganizationalUnit", fields{Type: OrganizationalUnit, Value: AttributeValue{}}, "ou"},
+		{"TestCase:DnQualifier", fields{Type: DnQualifier, Value: AttributeValue{}}, "dnQualifier"},
+		{"TestCase:StateOrProvinceName", fields{Type: StateOrProvinceName, Value: AttributeValue{}}, "st"},
+		{"TestCase:CommonName", fields{Type: CommonName, Value: AttributeValue{}}, "cn"},
+		{"TestCase:SerialNumber", fields{Type: SerialNumber, Value: AttributeValue{}}, "serialNumber"},
+		{"TestCase:LocalityName", fields{Type: LocalityName, Value: AttributeValue{}}, "L"},
+		{"TestCase:Title", fields{Type: Title, Value: AttributeValue{}}, "title"},
+		{"TestCase:Surname", fields{Type: Surname, Value: AttributeValue{}}, "sn"},
+		{"TestCase:GivenName", fields{Type: GivenName, Value: AttributeValue{}}, "givenName"},
+		{"TestCase:Initials", fields{Type: Initials, Value: AttributeValue{}}, "initials"},
+		{"TestCase:Pseudonym", fields{Type: Pseudonym, Value: AttributeValue{}}, "pseudonym"},
+		{"TestCase:GenerationQualifier", fields{Type: GenerationQualifier, Value: AttributeValue{}}, "generationQualifier"},
+		{"TestCase:ElectronicMailAddress", fields{Type: ElectronicMailAddress, Value: AttributeValue{}}, "email"},
+		{"TestCase:DomainComponent", fields{Type: DomainComponent, Value: AttributeValue{}}, "DC"},
+		{"TestCase:Generic", fields{Type: Generic, Oid: "1.2.3", Value: AttributeValue{}}, "1.2.3"},
+		{"TestCase:Generic(OrganizationName)", fields{Type: Generic, Oid: "2.5.4.10", Value: AttributeValue{}}, "o"},
+		{"TestCase:Generic(broken oid)", fields{Type: Generic, Oid: "broken oid", Value: AttributeValue{}}, "UnKnown"},
+		{"TestCase:UnKnownAttributeType", fields{Type: AttributeType(9999)}, "UnKnown"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := AttributeTypeAndValue{
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+				Oid:   tt.fields.Oid,
+			}
+			if got := a.toShortName(); got != tt.want {
+				t.Errorf("toShortName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_toDefinedShortName(t *testing.T) {
+	type args struct {
+		a AttributeType
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"TestCase:CountryName", args{CountryName}, "c"},
+		{"TestCase:OrganizationName", args{OrganizationName}, "o"},
+		{"TestCase:OrganizationalUnit", args{OrganizationalUnit}, "ou"},
+		{"TestCase:DnQualifier", args{DnQualifier}, "dnQualifier"},
+		{"TestCase:StateOrProvinceName", args{StateOrProvinceName}, "st"},
+		{"TestCase:CommonName", args{CommonName}, "cn"},
+		{"TestCase:SerialNumber", args{SerialNumber}, "serialNumber"},
+		{"TestCase:LocalityName", args{LocalityName}, "L"},
+		{"TestCase:Title", args{Title}, "title"},
+		{"TestCase:Surname", args{Surname}, "sn"},
+		{"TestCase:GivenName", args{GivenName}, "givenName"},
+		{"TestCase:Initials", args{Initials}, "initials"},
+		{"TestCase:Pseudonym", args{Pseudonym}, "pseudonym"},
+		{"TestCase:GenerationQualifier", args{GenerationQualifier}, "generationQualifier"},
+		{"TestCase:ElectronicMailAddress", args{ElectronicMailAddress}, "email"},
+		{"TestCase:DomainComponent", args{DomainComponent}, "DC"},
+		{"TestCase:Generic", args{Generic}, "Generic"},
+		{"TestCase:UnKnownAttributeType", args{AttributeType(9999)}, "UnKnown"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := toDefinedShortName(tt.args.a); got != tt.want {
+				t.Errorf("toDefinedShortName() = %v, want %v", got, tt.want)
 			}
 		})
 	}
