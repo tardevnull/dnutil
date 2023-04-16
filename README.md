@@ -8,7 +8,7 @@ With this library, you can easily and freely create [Issuer](https://datatracker
 ## Installation
 
 ```sh
-go install github.com/tardevnull/dnutil@latest
+go get github.com/tardevnull/dnutil@latest
 ```
 
 ## Example
