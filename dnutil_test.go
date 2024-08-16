@@ -1903,3 +1903,33 @@ func Test_toDefinedShortName(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateCountryCode(t *testing.T) {
+	type args struct {
+		c string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{"TestCase:valid country code", args{c: "JP"}, true, false},
+		{"TestCase:valid country code", args{c: "US"}, true, false},
+		{"TestCase:invalid country code JPN", args{c: "JPN"}, false, true},
+		{"TestCase:invalid country code XYZ", args{c: "XYZ"}, false, true},
+		{"TestCase:empty country code", args{c: ""}, false, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ValidateCountryCode(tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateCountryCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ValidateCountryCode() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

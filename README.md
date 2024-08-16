@@ -236,5 +236,11 @@ d := dnutil.DN{
 RFC4514 section2 Format: CN=ex+0.9.2342.19200300.100.1.1=userid_0001+EMAIL=ex@example.com,OU=\#Dev+OU=\ Sales,OU=A\,B\;,O=example Co.\, Ltd,C=JP
 ```
 
+### func ValidateCountryCode(c string) (bool, error)
+ValidateCountryCode validates whether c is a valid ISO-3166-Alpha2-code.
+```
+isValid, err := ValidateCountryCode("JP")
+```
+
 ## License
 [BSD 3-Clause](https://github.com/tardevnull/dnutil/blob/main/LICENSE)
